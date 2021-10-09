@@ -95,6 +95,11 @@ public:
         vector<string>header = this->outputHeader;
         vector<vector<int>>rows = this->outputRows;
 
+        if(colwidth.size() == 0)
+        {
+            return;
+        }
+
         cout << " ";
         for(int i = 0; i < colwidth.size(); i++)
         {
@@ -111,6 +116,17 @@ public:
             cout << " | " << setw(colwidth[i]) << header[i];
         }
         cout << " | " << endl;
+
+        cout << " ";
+        for(int i = 0; i < colwidth.size(); i++)
+        {
+            cout  << "+--";
+            for(int j = 0; j < colwidth[i]; j++)
+            {
+                cout << "-";
+            }
+        }
+        cout << "+" << endl;
 
         for(int i = 0; i < rows.size(); i++)
         {
@@ -235,6 +251,93 @@ public:
     }
 };
 
+
+class Cross
+{
+private:
+    File file1;
+    File file2;
+    OutputTable outputTable;
+
+public:
+    Cross(string fileName1, string fileName2)
+    {
+        this->file1.setFileName(fileName1);
+        this->file2.setFileName(fileName2);
+    }
+
+    void readRows()
+    {
+        Projection projection1 = Projection(this->file1.getFileName());
+        Projection projection2 = Projection(this->file2.getFileName());
+
+        projection1.readRows();
+        projection2.readRows();
+
+        OutputTable outputTable1 = projection1.getOutputTable();
+        OutputTable outputTable2 = projection2.getOutputTable();
+
+        vector<int>colwidth1 = outputTable1.getColumnWidth();
+        vector<int>colwidth2 = outputTable2.getColumnWidth();
+
+        if(colwidth1.size() == 0 || colwidth2.size() == 0)
+        {
+            return;
+        }
+
+        for(int i = 0; i < colwidth1.size(); i++)
+        {
+            this->outputTable.addColumnWidth(colwidth1[i]);
+        }
+        for(int i = 0; i < colwidth2.size(); i++)
+        {
+            this->outputTable.addColumnWidth(colwidth2[i]);
+        }
+
+        vector<string>header1 = outputTable1.getOutputHeader();
+        vector<string>header2 = outputTable2.getOutputHeader();
+
+        for(int i = 0; i < header1.size(); i++)
+        {
+            this->outputTable.addOutputHeader(header1[i]);
+        }
+        for(int i = 0; i < header2.size(); i++)
+        {
+            this->outputTable.addOutputHeader(header2[i]);
+        }
+
+        vector<vector<int>>rows1 = outputTable1.getOutputRows();
+        vector<vector<int>>rows2 = outputTable2.getOutputRows();
+
+        for(int i = 0; i < rows1.size(); i++)
+        {
+            for(int j = 0; j < rows2.size(); j++)
+            {
+                vector<int>rows;
+                for(int k = 0; k < header1.size(); k++)
+                {
+                    rows.pb(rows1[i][k]);
+                }
+                for(int k = 0; k < header2.size(); k++)
+                {
+                    rows.pb(rows2[j][k]);
+                }
+                this->outputTable.addOutputRows(rows);
+            }
+        }
+    }
+
+    void printTable()
+    {
+        this->outputTable.printTable();
+    }
+
+    OutputTable getOutputTable()
+    {
+        return this->outputTable;
+    }
+};
+
 void processProjectQuery()
 {
     string fileName;
@@ -255,6 +358,17 @@ void processProjectQuery()
     projection.printTable();
 }
 
+void processCrossQuery()
+{
+    string fileName1, fileName2;
+
+    cin >> fileName1 >> fileName2;
+    Cross cross(fileName1, fileName2);
+
+    cross.readRows();
+    cross.printTable();
+}
+
 int main()
 {
     string query;
@@ -264,6 +378,10 @@ int main()
         if(query == "project")
         {
             processProjectQuery();
+        }
+        else if(query == "cross")
+        {
+            processCrossQuery();
         }
     }
 
