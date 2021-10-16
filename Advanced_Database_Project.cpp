@@ -14,6 +14,8 @@ using namespace std;
     4. If there is an input column which is not present in the table, then what to do?
     5. If the file doesn't exist, then what to do?
     6. Will be there any space in header name?
+    7. What will be the output if multiple rows provide same pairs of tuple?
+        Should we output all? Or only one row?
 */
 
 string getLineCommaReplaceWithSpace(string str)
@@ -251,76 +253,124 @@ public:
     }
 };
 
+/*
+    Cross:
+        1. If we have time, then we will try to implement cross for multiple table.
+*/
 
 class Cross
 {
 private:
-    File file1;
-    File file2;
+    File file[2];
+    OutputTable processedTable[2];
     OutputTable outputTable;
+    map<string, int>markHeader;
+
+    void processHeaders(string headerRow, int serailNo)
+    {
+        headerRow = getLineCommaReplaceWithSpace(headerRow);
+        string columnName;
+
+        stringstream ss(headerRow);
+        while(ss >> columnName)
+        {
+            this->markHeader[columnName]++;
+            this->processedTable[serailNo].addOutputHeader(columnName);
+            this->processedTable[serailNo].addColumnWidth(columnName.size());
+        }
+    }
+
+    void processRows(string valueRow, int serailNo)
+    {
+        valueRow = getLineCommaReplaceWithSpace(valueRow);
+        vector<int>rows;
+        int value;
+
+        stringstream ss(valueRow);
+
+        int selectedColumnCnt = 0;
+        while(ss >> value)
+        {
+            rows.pb(value);
+            this->processedTable[serailNo].setColumnWidth(selectedColumnCnt++, log10(value) + 1);
+        }
+        this->processedTable[serailNo].addOutputRows(rows);
+    }
 
 public:
     Cross(string fileName1, string fileName2)
     {
-        this->file1.setFileName(fileName1);
-        this->file2.setFileName(fileName2);
+        this->file[0].setFileName(fileName1);
+        this->file[1].setFileName(fileName2);
     }
 
     void readRows()
     {
-        Projection projection1 = Projection(this->file1.getFileName());
-        Projection projection2 = Projection(this->file2.getFileName());
+        string tableRows;
+        bool isHeader;
 
-        projection1.readRows();
-        projection2.readRows();
-
-        OutputTable outputTable1 = projection1.getOutputTable();
-        OutputTable outputTable2 = projection2.getOutputTable();
-
-        vector<int>colwidth1 = outputTable1.getColumnWidth();
-        vector<int>colwidth2 = outputTable2.getColumnWidth();
-
-        if(colwidth1.size() == 0 || colwidth2.size() == 0)
+        for(int serialNo= 0; serialNo < 2; serialNo++)
         {
-            return;
+            isHeader = true;
+            this->file[serialNo].openFile();
+            while(this->file[serialNo].fin >> tableRows)
+            {
+                if(isHeader)
+                {
+                    processHeaders(tableRows, serialNo);
+                    isHeader = false;
+                }
+                else
+                {
+                    processRows(tableRows, serialNo);
+                }
+            }
         }
 
-        for(int i = 0; i < colwidth1.size(); i++)
+        for(int serialNo = 0; serialNo < 2; serialNo++)
         {
-            this->outputTable.addColumnWidth(colwidth1[i]);
-        }
-        for(int i = 0; i < colwidth2.size(); i++)
-        {
-            this->outputTable.addColumnWidth(colwidth2[i]);
+            string fileName = this->file[serialNo].getFileName();
+            size_t pos = fileName.find(".csv");
+            fileName = (pos == std::string::npos) ? fileName : fileName.replace(pos, 4, "");
+            if(this->file[0].getFileName() == this->file[1].getFileName())
+            {
+                fileName += (serialNo + '0' + 1);
+            }
+
+            vector<string>headers = this->processedTable[serialNo].getOutputHeader();
+            for(int i = 0; i < headers.size(); i++)
+            {
+                if(this->markHeader[headers[i]] > 1)
+                {
+                    string columnName = fileName + "." + headers[i];
+                    this->outputTable.addOutputHeader(columnName);
+
+                    int columnWidth = max((int)columnName.size(), this->processedTable[serialNo].getColumnWidth()[i]);
+                    this->outputTable.addColumnWidth(columnWidth);
+                }
+                else
+                {
+                    string columnName = headers[i];
+                    this->outputTable.addOutputHeader(columnName);
+
+                    int columnWidth = max((int)columnName.size(), this->processedTable[serialNo].getColumnWidth()[i]);
+                    this->outputTable.addColumnWidth(columnWidth);
+                }
+            }
         }
 
-        vector<string>header1 = outputTable1.getOutputHeader();
-        vector<string>header2 = outputTable2.getOutputHeader();
-
-        for(int i = 0; i < header1.size(); i++)
+        for(int i = 0; i < this->processedTable[0].getOutputRows().size(); i++)
         {
-            this->outputTable.addOutputHeader(header1[i]);
-        }
-        for(int i = 0; i < header2.size(); i++)
-        {
-            this->outputTable.addOutputHeader(header2[i]);
-        }
-
-        vector<vector<int>>rows1 = outputTable1.getOutputRows();
-        vector<vector<int>>rows2 = outputTable2.getOutputRows();
-
-        for(int i = 0; i < rows1.size(); i++)
-        {
-            for(int j = 0; j < rows2.size(); j++)
+            for(int j = 0; j < this->processedTable[1].getOutputRows().size(); j++)
             {
                 vector<int>rows;
-                for(int k = 0; k < header1.size(); k++)
+                for(int k = 0; k < this->processedTable[0].getOutputRows()[i].size(); k++)
                 {
-                    rows.pb(rows1[i][k]);
+                    rows.pb(this->processedTable[0].getOutputRows()[i][k]);
                 }
-                for(int k = 0; k < header2.size(); k++)
+                for(int k = 0; k < this->processedTable[1].getOutputRows()[j].size(); k++)
                 {
-                    rows.pb(rows2[j][k]);
+                    rows.pb(this->processedTable[1].getOutputRows()[j][k]);
                 }
                 this->outputTable.addOutputRows(rows);
             }
@@ -337,6 +387,7 @@ public:
         return this->outputTable;
     }
 };
+
 
 void processProjectQuery()
 {
@@ -373,7 +424,7 @@ int main()
 {
     string query;
 
-    while(cin >> query)
+    while(cout << "Query >> ", cin >> query)
     {
         if(query == "project")
         {
