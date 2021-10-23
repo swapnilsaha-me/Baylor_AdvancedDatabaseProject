@@ -37,6 +37,7 @@ private:
 
 public:
     fstream fin;
+    ofstream fout;
 
     void setFileName(string fileName)
     {
@@ -46,9 +47,13 @@ public:
     {
         return this->fileName;
     }
-    void openFile()
+    void openFileForInput()
     {
         this->fin.open(this->fileName, ios::in);
+    }
+    void openFileForOutput()
+    {
+        this->fout.open(this->fileName, ios::out);
     }
 };
 
@@ -149,6 +154,7 @@ public:
             }
         }
         cout << "-" << endl;
+        cout << "~~ " << rows.size() << " rows returned.\n\n\n" << endl;
     }
 };
 
@@ -157,6 +163,7 @@ class Projection
 private:
     File file;
     OutputTable outputTable;
+    File outputFile;
 
     bool isThereInputHeader = false;
     map<string, bool>markInputHeader;
@@ -212,9 +219,10 @@ private:
     }
 
 public:
-    Projection(string fileName)
+    Projection(string fileName, string outputFileName)
     {
         this->file.setFileName(fileName);
+        this->outputFile.setFileName(outputFileName);
     }
 
     void addHeader(string header)
@@ -227,7 +235,7 @@ public:
     {
         string tableRows;
         bool isHeader = true;
-        this->file.openFile();
+        this->file.openFileForInput();
         while(this->file.fin >> tableRows)
         {
             if(isHeader)
@@ -251,6 +259,35 @@ public:
     {
         return this->outputTable;
     }
+
+    void saveOutput()
+    {
+        this->outputFile.openFileForOutput();
+        vector<string>outputHeader = this->outputTable.getOutputHeader();
+        vector<vector<int>>outputRows = this->outputTable.getOutputRows();
+        for(int i = 0; i < outputHeader.size(); i++)
+        {
+            if(i)
+            {
+                this->outputFile.fout << ",";
+            }
+            this->outputFile.fout << outputHeader[i];
+        }
+        this->outputFile.fout << endl;
+
+        for(int i = 0; i < outputRows.size(); i++)
+        {
+            for(int j = 0; j < outputRows[i].size(); j++)
+            {
+                if(j)
+                {
+                    this->outputFile.fout << ",";
+                }
+                this->outputFile.fout << outputRows[i][j];
+            }
+            this->outputFile.fout << endl;
+        }
+    }
 };
 
 /*
@@ -264,6 +301,7 @@ private:
     File file[2];
     OutputTable processedTable[2];
     OutputTable outputTable;
+    File outputFile;
     map<string, int>markHeader;
 
     void processHeaders(string headerRow, int serailNo)
@@ -298,10 +336,11 @@ private:
     }
 
 public:
-    Cross(string fileName1, string fileName2)
+    Cross(string fileName1, string fileName2, string outputFileName)
     {
         this->file[0].setFileName(fileName1);
         this->file[1].setFileName(fileName2);
+        this->outputFile.setFileName(outputFileName);
     }
 
     void readRows()
@@ -312,7 +351,7 @@ public:
         for(int serialNo= 0; serialNo < 2; serialNo++)
         {
             isHeader = true;
-            this->file[serialNo].openFile();
+            this->file[serialNo].openFileForInput();
             while(this->file[serialNo].fin >> tableRows)
             {
                 if(isHeader)
@@ -386,16 +425,46 @@ public:
     {
         return this->outputTable;
     }
+
+    void saveOutput()
+    {
+        this->outputFile.openFileForOutput();
+        vector<string>outputHeader = this->outputTable.getOutputHeader();
+        vector<vector<int>>outputRows = this->outputTable.getOutputRows();
+        for(int i = 0; i < outputHeader.size(); i++)
+        {
+            if(i)
+            {
+                this->outputFile.fout << ",";
+            }
+            this->outputFile.fout << outputHeader[i];
+        }
+        this->outputFile.fout << endl;
+
+        for(int i = 0; i < outputRows.size(); i++)
+        {
+            for(int j = 0; j < outputRows[i].size(); j++)
+            {
+                if(j)
+                {
+                    this->outputFile.fout << ",";
+                }
+                this->outputFile.fout << outputRows[i][j];
+            }
+            this->outputFile.fout << endl;
+        }
+    }
 };
 
 
 void processProjectQuery()
 {
     string fileName;
+    string outputFileName;
     string parameter;
 
-    cin >> fileName;
-    Projection projection(fileName);
+    cin >> fileName >> outputFileName;
+    Projection projection(fileName, outputFileName);
 
     getline(cin, parameter);
     stringstream ss(parameter);
@@ -407,17 +476,19 @@ void processProjectQuery()
 
     projection.readRows();
     projection.printTable();
+    projection.saveOutput();
 }
 
 void processCrossQuery()
 {
-    string fileName1, fileName2;
+    string fileName1, fileName2, outputFileName;
 
-    cin >> fileName1 >> fileName2;
-    Cross cross(fileName1, fileName2);
+    cin >> fileName1 >> fileName2 >> outputFileName;
+    Cross cross(fileName1, fileName2, outputFileName);
 
     cross.readRows();
     cross.printTable();
+    cross.saveOutput();
 }
 
 int main()
