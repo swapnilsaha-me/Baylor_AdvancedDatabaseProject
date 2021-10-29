@@ -55,6 +55,14 @@ public:
     {
         this->fout.open(this->fileName, ios::out);
     }
+    void closeFileForInput()
+    {
+        this->fin.close();
+    }
+    void closeFileForOutput()
+    {
+        this->fout.close();
+    }
 };
 
 class OutputTable
@@ -248,6 +256,7 @@ public:
                 processRows(tableRows);
             }
         }
+        this->file.closeFileForInput();
     }
 
     void printTable()
@@ -287,6 +296,7 @@ public:
             }
             this->outputFile.fout << endl;
         }
+        this->outputFile.closeFileForOutput();
     }
 };
 
@@ -364,6 +374,7 @@ public:
                     processRows(tableRows, serialNo);
                 }
             }
+            this->file[serialNo].closeFileForInput();
         }
 
         for(int serialNo = 0; serialNo < 2; serialNo++)
@@ -453,6 +464,7 @@ public:
             }
             this->outputFile.fout << endl;
         }
+        this->outputFile.closeFileForOutput();
     }
 };
 
