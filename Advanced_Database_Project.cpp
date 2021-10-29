@@ -213,7 +213,6 @@ private:
 
         stringstream ss(valueRow);
 
-        vector<string>headers = this->outputTable.getOutputHeader();
         int totalColumnCnt = 0, selectedColumnCnt = 0;
         while(ss >> value)
         {
@@ -468,6 +467,196 @@ public:
     }
 };
 
+/*
+    Select:
+
+*/
+
+class Select
+{
+private:
+    File file;
+    OutputTable processedTable;
+    OutputTable outputTable;
+    File outputFile;
+
+    bool isBPlusTree;
+    int searchValue;
+    map<string, bool>markInputHeader;
+    vector<int>markedInputHeaderIndex;
+
+    void processHeaders(string headerRow)
+    {
+        headerRow = getLineCommaReplaceWithSpace(headerRow);
+        string columnName;
+
+        stringstream ss(headerRow);
+        int totalColumnCnt = 0;
+        while(ss >> columnName)
+        {
+            if(this->markInputHeader[columnName])
+            {
+                this->markedInputHeaderIndex.push_back(totalColumnCnt);
+            }
+            this->outputTable.addOutputHeader(columnName);
+            this->outputTable.addColumnWidth(columnName.size());
+            totalColumnCnt++;
+        }
+    }
+
+    void processRowsLinearSearch(string valueRow)
+    {
+        valueRow = getLineCommaReplaceWithSpace(valueRow);
+        vector<int>rows;
+        int value;
+
+        stringstream ss(valueRow);
+
+        while(ss >> value)
+        {
+            rows.pb(value);
+        }
+        bool isInsert = false;
+        if(this->markedInputHeaderIndex.size() == 2)
+        {
+            if(rows[this->markedInputHeaderIndex[0]] == rows[this->markedInputHeaderIndex[1]])
+            {
+                isInsert = true;
+            }
+        }
+
+        if(isInsert)
+        {
+            for(int i = 0; i < rows.size(); i++)
+            {
+                this->outputTable.setColumnWidth(i, log10(rows[i]) + 1);
+            }
+            this->outputTable.addOutputRows(rows);
+        }
+    }
+
+//    void processRowsBPlusTree(string valueRow)
+//    {
+//        valueRow = getLineCommaReplaceWithSpace(valueRow);
+//        vector<int>rows;
+//        int value;
+//
+//        stringstream ss(valueRow);
+//
+//        while(ss >> value)
+//        {
+//            rows.pb(value);
+//        }
+//        bool isInsert = false;
+//        if(this->markedInputHeaderIndex.size() == 1)
+//        {
+//            if(rows[this->markedInputHeaderIndex[0]] == this->searchValue)
+//            {
+//                isInsert = true;
+//            }
+//        }
+//
+//        if(isInsert)
+//        {
+//            for(int i = 0; i < rows.size(); i++)
+//            {
+//                this->outputTable.setColumnWidth(i, log10(rows[i]) + 1);
+//            }
+//            this->outputTable.addOutputRows(rows);
+//        }
+//    }
+
+public:
+    Select(string fileName, string outputFileName)
+    {
+        this->file.setFileName(fileName);
+        this->outputFile.setFileName(outputFileName);
+    }
+
+    void addHeader(string header1, bool isBPlusTree, string header2, int searchValue)
+    {
+        this->isBPlusTree = isBPlusTree;
+        this->markInputHeader[header1] = 1;
+        if(this->isBPlusTree)
+        {
+            this->searchValue = searchValue;
+        }
+        else
+        {
+            this->markInputHeader[header2] = 1;
+        }
+    }
+
+    void readRows()
+    {
+        string tableRows;
+        bool isHeader;
+
+        isHeader = true;
+        this->file.openFileForInput();
+        while(this->file.fin >> tableRows)
+        {
+            if(isHeader)
+            {
+                processHeaders(tableRows);
+                isHeader = false;
+            }
+            else
+            {
+                if(this->isBPlusTree)
+                {
+
+                }
+                else
+                {
+                    processRowsLinearSearch(tableRows);
+                }
+            }
+        }
+        this->file.closeFileForInput();
+    }
+
+    void printTable()
+    {
+        this->outputTable.printTable();
+    }
+
+    OutputTable getOutputTable()
+    {
+        return this->outputTable;
+    }
+
+    void saveOutput()
+    {
+        this->outputFile.openFileForOutput();
+        vector<string>outputHeader = this->outputTable.getOutputHeader();
+        vector<vector<int>>outputRows = this->outputTable.getOutputRows();
+        for(int i = 0; i < outputHeader.size(); i++)
+        {
+            if(i)
+            {
+                this->outputFile.fout << ",";
+            }
+            this->outputFile.fout << outputHeader[i];
+        }
+        this->outputFile.fout << endl;
+
+        for(int i = 0; i < outputRows.size(); i++)
+        {
+            for(int j = 0; j < outputRows[i].size(); j++)
+            {
+                if(j)
+                {
+                    this->outputFile.fout << ",";
+                }
+                this->outputFile.fout << outputRows[i][j];
+            }
+            this->outputFile.fout << endl;
+        }
+        this->outputFile.closeFileForOutput();
+    }
+};
+
 
 void processProjectQuery()
 {
@@ -503,6 +692,35 @@ void processCrossQuery()
     cross.saveOutput();
 }
 
+void processSelectQuery()
+{
+    string fileName, outputFileName;
+    string parameter1, parameter2;
+
+    cin >> fileName >> outputFileName;
+    Select select(fileName, outputFileName);
+
+    cin >> parameter1 >> parameter2;
+
+    bool isNumber = true;
+    int searchValue = 0;
+    for(int i = 0; i < parameter2.size(); i++)
+    {
+        if(!('0' <= parameter2[i] && parameter2[i] <= '9'))
+        {
+            isNumber = false;
+            break;
+        }
+        searchValue = (searchValue * 10) + parameter2[i];
+    }
+
+    select.addHeader(parameter1, isNumber, parameter2, searchValue);
+
+    select.readRows();
+    select.printTable();
+    select.saveOutput();
+}
+
 int main()
 {
     string query;
@@ -516,6 +734,10 @@ int main()
         else if(query == "cross")
         {
             processCrossQuery();
+        }
+        else if(query == "select")
+        {
+            processSelectQuery();
         }
     }
 
