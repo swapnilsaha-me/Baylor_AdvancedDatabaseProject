@@ -1,0 +1,6 @@
++=======================================================================================+
+|	>> Enter -h for help								|
+|	>> Enter "man <operator>" e.g. "man select", "man cross" for query syntax	|
+|	>> Enter "clear" to clear console output					|
+|	>> Enter "exit" to close application						|
++=======================================================================================+

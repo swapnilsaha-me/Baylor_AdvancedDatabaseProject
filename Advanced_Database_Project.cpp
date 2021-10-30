@@ -1,3 +1,4 @@
+/**/
 #include<bits/stdc++.h>
 using namespace std;
 
@@ -721,9 +722,50 @@ void processSelectQuery()
     select.saveOutput();
 }
 
+void readAndPrintFile (string path) {
+    std::ifstream file(path);
+    std::string str;
+    while (std::getline(file, str))
+    {
+        cout<<str<<endl;
+    }
+    cout<<endl;
+    file.close();
+}
+
+void printConsole() {
+    readAndPrintFile("resources/head.txt");
+
+}
+
+void loadHelpFile() {
+    readAndPrintFile("resources/helpfile.txt");
+}
+
+void showOperatorManual () {
+    string operatorName;
+    cin >> operatorName;
+
+    if (operatorName == "select") {
+        readAndPrintFile("resources/man-select.txt");
+    }
+    else if (operatorName == "project") {
+        readAndPrintFile("resources/man-project.txt");
+    }
+    else if (operatorName == "cross") {
+        readAndPrintFile("resources/man-cross.txt");
+    }
+    else {
+        cout<<"Enter valid operator name."<<endl;
+    }
+
+}
+
 int main()
 {
     string query;
+
+    printConsole();
 
     while(cout << "Query >> ", cin >> query)
     {
@@ -742,6 +784,16 @@ int main()
         else if(query == "clear")
         {
             system("CLS");
+            printConsole();
+        }
+        else if (query == "exit") {
+            exit(0);
+        }
+        else if (query == "-h") {
+            loadHelpFile();
+        }
+        else if (query == "man") {
+            showOperatorManual();
         }
     }
 

@@ -1,0 +1,16 @@
+The selection operator will take four parameters
+	1. the name of the input CSV file,
+	2. the name of the output CSV file,
+	3. the name of an attribute,
+	4. either the name of an attribute or a constant.
+
+Case 1: select fname oname A B
+	- The project should sequentially read fname and output all rows where the A attribute equals the B attribute
+
+Case 2: select fname oname A 10
+	- The project should use a persistent B+-Tree (stored in the file fname.A.btree).
+	- The project should output those rows indicated by the B+-Tree
+	- The values in the file do not have to be unique
+
+Query >> select db.csv out.csv marks age
+Query >> select db.csv out.csv id 5
