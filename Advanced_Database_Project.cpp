@@ -739,6 +739,10 @@ int main()
         {
             processSelectQuery();
         }
+        else if(query == "clear")
+        {
+            system("CLS");
+        }
     }
 
     return 0;
