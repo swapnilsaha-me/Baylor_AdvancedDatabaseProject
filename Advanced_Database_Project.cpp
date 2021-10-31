@@ -1,9 +1,10 @@
 #include<bits/stdc++.h>
 using namespace std;
 
-#define sf      scanf
-#define pf      printf
-#define pb      push_back
+#define sf              scanf
+#define pf              printf
+#define pb              push_back
+#define MAX_POINTER     4
 
 /*
     Projection:
@@ -30,6 +31,15 @@ string getLineCommaReplaceWithSpace(string str)
     return str;
 }
 
+bool pair_compare(pair<int, int>a, pair<int, int>b)
+{
+    if(a.first == b.first)
+    {
+        return a.second <= b.second;
+    }
+    return a.first <= b.first;
+}
+
 class File
 {
 private:
@@ -49,11 +59,11 @@ public:
     }
     void openFileForInput()
     {
-        this->fin.open(this->fileName, ios::in);
+        this->fin.open(this->fileName, ios_base::in);
     }
     void openFileForOutput()
     {
-        this->fout.open(this->fileName, ios::out);
+        this->fout.open(this->fileName, ios_base::out | ios_base::trunc);
     }
     void closeFileForInput()
     {
@@ -468,6 +478,432 @@ public:
 };
 
 /*
+    BPlusTree
+*/
+
+class BPlusTreeNode
+{
+private:
+    File file;
+    int isOriginalData;
+    int isLeaf;
+    int numberOfPointers;
+    int numberOfValues;
+    vector<string>pointers;
+    vector<pair<int, int>>values;
+    vector<int>originalValue;
+
+    void updateNumberOfPointers()
+    {
+        this->numberOfPointers = this->pointers.size();
+    }
+
+    void updateNumberOfValues()
+    {
+        this->numberOfValues = this->values.size();
+    }
+
+public:
+    void setFileName(string fileName)
+    {
+        this->file.setFileName(fileName);
+    }
+
+    string getFileName()
+    {
+        return this->file.getFileName();
+    }
+
+    bool isOriginalDataNode()
+    {
+        return this->isOriginalData;
+    }
+
+    bool isLeafNode()
+    {
+        return this->isLeaf;
+    }
+
+    void updateOriginalDataStatus(bool isOriginalData)
+    {
+        this->isOriginalData = isOriginalData;
+    }
+
+    void updateLeafNodeStatus(bool isLeaf)
+    {
+        this->isLeaf = isLeaf;
+    }
+
+    bool isPageFull()
+    {
+        return this->numberOfValues == MAX_POINTER;
+    }
+
+    vector<string> getPointers()
+    {
+        return this->pointers;
+    }
+
+    vector<pair<int, int>> getValues()
+    {
+        return this->values;
+    }
+
+    void setPointers(vector<string>pointers)
+    {
+        this->pointers = pointers;
+        this->updateNumberOfPointers();
+    }
+
+    void setValues(vector<pair<int, int>>values)
+    {
+        this->values = values;
+        this->updateNumberOfValues();
+    }
+
+    void setOriginalValues(vector<int>originalValue)
+    {
+        this->originalValue = originalValue;
+    }
+
+    void readRows()
+    {
+        this->file.openFileForInput();
+        this->file.fin >> isOriginalData;
+        if(this->isOriginalData)
+        {
+            int temp;
+            while(this->file.fin >> temp)
+            {
+                this->originalValue.pb(temp);
+            }
+        }
+        else
+        {
+            this->file.fin >> isLeaf;
+            this->file.fin >> numberOfPointers;
+            this->file.fin >> numberOfValues;
+            bool isPointer = true;
+            string fileName;
+            pair<int, int>val;
+            while(1)
+            {
+                if(isPointer)
+                {
+                    if(this->pointers.size() < this->numberOfPointers)
+                    {
+                        this->file.fin >> fileName;
+                        this->pointers.pb(fileName);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    if(this->values.size() < this->numberOfValues)
+                    {
+                        this->file.fin >> val.first >> val.second;
+                        this->values.pb(val);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                isPointer = !isPointer;
+            }
+        }
+        this->file.closeFileForInput();
+    }
+
+    void writeRows()
+    {
+        this->file.openFileForOutput();
+        this->file.fout << this->isOriginalData << endl;
+        if(this->isOriginalData)
+        {
+            for(int i = 0; i < this->originalValue.size(); i++)
+            {
+                if(i)
+                {
+                    this->file.fout << " ";
+                }
+                this->file.fout << this->originalValue[i];
+            }
+            this->file.fout << endl;
+        }
+        else
+        {
+            this->file.fout << this->isLeaf << endl;
+            this->file.fout << this->numberOfPointers << endl;
+            this->file.fout << this->numberOfValues << endl;
+            for(int i = 0, j = 0, k = 0; i < this->pointers.size() + this->values.size(); i++)
+            {
+                if(i & 1)
+                {
+                    this->file.fout << this->values[j].first << " " << this->values[j].second << endl;
+                    j++;
+                }
+                else
+                {
+                    this->file.fout << this->pointers[k] << endl;
+                    k++;
+                }
+            }
+        }
+        this->file.closeFileForOutput();
+    }
+};
+
+class BPlusTree
+{
+private:
+    File metadata;
+    string filePrefix;
+    string nextFileSerial;
+    string headers;
+    string rootFileName;
+    vector<int>originalDataToInsert;
+
+    void incrementNextFileSerial()
+    {
+        int num = 0;
+        for(int i = 0; i < nextFileSerial.size(); i++)
+        {
+            num = (num * 10) + (nextFileSerial[i] - '0');
+        }
+        num++;
+        string temp;
+        while(num)
+        {
+            temp += ((num % 10) + '0');
+            num /= 10;
+        }
+        if(temp == "")
+        {
+            temp += "0";
+        }
+        reverse(temp.begin(), temp.end());
+        nextFileSerial = temp;
+    }
+
+public:
+
+    void setMetaDataFileName(string fileName)
+    {
+        this->metadata.setFileName(fileName);
+    }
+
+    void setFilePrefix(string filePrefix)
+    {
+        this->filePrefix = filePrefix;
+    }
+
+    string getFilePrefix()
+    {
+        return this->filePrefix;
+    }
+
+    string getNextFileNameWithPrefix()
+    {
+        string nextFileName = this->filePrefix + this->nextFileSerial;
+        incrementNextFileSerial();
+        writeMetaData();
+        return nextFileName;
+    }
+
+    void setRootFileName(string rootFileName)
+    {
+        this->rootFileName = rootFileName;
+    }
+
+    void setNextFileSerial(string nextFileSerial)
+    {
+        this->nextFileSerial = nextFileSerial;
+    }
+
+    string getHeaders()
+    {
+        return this->headers;
+    }
+
+    void setHeaders(string headers)
+    {
+        this->headers = headers;
+    }
+
+    string getRootFileName()
+    {
+        return this->rootFileName;
+    }
+
+    string getNextFileSerial()
+    {
+        return this->getNextFileSerial();
+    }
+
+    void setOriginalDataToBeInserted(vector<int>originalDataToInsert)
+    {
+        this->originalDataToInsert = originalDataToInsert;
+    }
+
+    void readMetaData()
+    {
+        this->metadata.openFileForInput();
+        this->metadata.fin >> nextFileSerial;
+        this->metadata.fin >> filePrefix;
+        this->metadata.fin >> rootFileName;
+        string temp, newHeaders;
+        while(this->metadata.fin >> temp)
+        {
+            if(newHeaders.size())
+            {
+                newHeaders += " ";
+            }
+            newHeaders += temp;
+        }
+        headers = newHeaders;
+        //cout << nextFileSerial << " : " << filePrefix << " : " << rootFileName << " : " << headers << endl;
+        this->metadata.closeFileForInput();
+    }
+
+    void writeMetaData()
+    {
+        this->metadata.openFileForOutput();
+        this->metadata.fout << nextFileSerial << endl;
+        this->metadata.fout << filePrefix << endl;
+        this->metadata.fout << rootFileName << endl;
+        this->metadata.fout << headers << endl;
+        this->metadata.closeFileForOutput();
+    }
+
+    string insertOriginalDataAndGetFileName()
+    {
+        BPlusTreeNode bPlusTreeNodeOriginalData;
+        bPlusTreeNodeOriginalData.setFileName(this->getNextFileNameWithPrefix());
+        bPlusTreeNodeOriginalData.updateOriginalDataStatus(1);
+        bPlusTreeNodeOriginalData.setOriginalValues(this->originalDataToInsert);
+        bPlusTreeNodeOriginalData.writeRows();
+        return bPlusTreeNodeOriginalData.getFileName();
+    }
+
+    pair<pair<int, int>, string> insertData(pair<int, int>insertValue, string currentNodeFileName)
+    {
+        //cout << "currentNodeFileName: " << currentNodeFileName << endl;
+        //return;
+        BPlusTreeNode currentNode;
+        currentNode.setFileName(currentNodeFileName);
+        currentNode.readRows();
+        pair<File, pair<int, int>> insertNode;
+        vector<string> pointers = currentNode.getPointers();
+        vector<pair<int, int>>values = currentNode.getValues();
+
+        //Leaf node
+        if(currentNode.isLeafNode())
+        {
+            bool isInserted = false;
+            int loc = 0;
+            for(int i = 0; i < values.size(); i++)
+            {
+                if(pair_compare(insertValue, values[i]))
+                {
+                    isInserted = true;
+                    loc = i;
+                    break;
+                }
+            }
+            if(!isInserted)
+            {
+                loc = values.size();
+            }
+
+            string originalDataFileName = insertOriginalDataAndGetFileName();
+            pointers.insert(pointers.begin() + loc, originalDataFileName);
+            values.insert(values.begin() + loc, insertValue);
+            currentNode.setPointers(pointers);
+            currentNode.setValues(values);
+            currentNode.writeRows();
+
+            if(currentNode.isPageFull())
+            {
+                BPlusTreeNode leftNode, rightNode;
+
+                leftNode.setFileName(currentNode.getFileName());
+                rightNode.setFileName(this->getNextFileNameWithPrefix());
+
+                leftNode.updateOriginalDataStatus(0);
+                rightNode.updateOriginalDataStatus(0);
+
+                leftNode.updateLeafNodeStatus(1);
+                rightNode.updateLeafNodeStatus(1);
+
+                vector<string>leftPointers, rightPointers;
+                vector<pair<int, int>>leftValues, rightValues;
+
+                for(int i = 0; i < currentNode.getValues().size(); i++)
+                {
+                    if(i < (MAX_POINTER / 2))
+                    {
+                        leftPointers.pb(currentNode.getPointers()[i]);
+                        leftValues.pb(currentNode.getValues()[i]);
+                    }
+                    else
+                    {
+                        rightPointers.pb(currentNode.getPointers()[i]);
+                        rightValues.pb(currentNode.getValues()[i]);
+                    }
+                }
+                leftPointers.pb(rightNode.getFileName());
+                rightPointers.pb(currentNode.getPointers()[currentNode.getPointers().size() - 1]);
+
+                //cout << rightNode.getFileName() << ", " << currentNode.getPointers()[currentNode.getPointers().size() - 1] << endl;
+
+                leftNode.setPointers(leftPointers);
+                rightNode.setPointers(rightPointers);
+
+                leftNode.setValues(leftValues);
+                rightNode.setValues(rightValues);
+
+                //cout << "FileName: " << leftNode.getFileName() << ", " << rightNode.getFileName() << endl;
+                //cout << "Pointers: " << leftNode.getPointers().size() << ", " << rightNode.getPointers().size() << endl;
+                //cout << "Values: " << leftNode.getValues().size() << ", " << rightNode.getValues().size() << endl;
+
+                leftNode.writeRows();
+                rightNode.writeRows();
+
+                return make_pair(rightValues[0], rightNode.getFileName());
+            }
+            return make_pair(make_pair(0, 0), "");
+        }
+        //Non-Leaf Node
+        /*else
+        {
+            bool isFound = false;
+            for(int i = 0; i < values.size(); i++)
+            {
+                if(pair_compare(insertNode, values))
+                {
+                    isFound = true;
+                    BPlusTreeNode childNode;
+                    childNode.setFileName(pointers[i]);
+                    insertNode = insertData(childNode);
+                    File file = insertNode->first;
+                }
+            }
+            if(!isFound)
+            {
+                BPlusTreeNode childNode;
+                childNode.setFileName(pointers[pointers.size() - 1]);
+                insertNode = insertData(childNode);
+                File file = insertNode->first;
+            }
+        }*/
+    }
+};
+
+/*
     Select:
 
 */
@@ -476,18 +912,43 @@ class Select
 {
 private:
     File file;
+    BPlusTree bPlusTree;
     OutputTable processedTable;
     OutputTable outputTable;
     File outputFile;
 
     bool isBPlusTree;
     int searchValue;
+    string bPlusTreeColumn;
     map<string, bool>markInputHeader;
     vector<int>markedInputHeaderIndex;
+
+    void createRootNode(vector<string>pointers, vector<pair<int, int>>values, bool isLeafNode)
+    {
+        BPlusTreeNode bPlusTreeNode;
+        bPlusTreeNode.setFileName(bPlusTree.getNextFileNameWithPrefix());
+        bPlusTreeNode.updateOriginalDataStatus(0);
+        bPlusTreeNode.updateLeafNodeStatus(isLeafNode);
+        bPlusTreeNode.setPointers(pointers);
+        bPlusTreeNode.setValues(values);
+        bPlusTreeNode.writeRows();
+        bPlusTree.writeMetaData();
+    }
+
+    void createMetaData()
+    {
+        string metaDataFileName = this->outputFile.getFileName() + "." + this->bPlusTreeColumn + ".btree";
+        bPlusTree.setMetaDataFileName(metaDataFileName);
+        bPlusTree.setFilePrefix(metaDataFileName);
+        bPlusTree.setRootFileName(metaDataFileName + "0");
+        bPlusTree.setNextFileSerial("0");
+        bPlusTree.writeMetaData();
+    }
 
     void processHeaders(string headerRow)
     {
         headerRow = getLineCommaReplaceWithSpace(headerRow);
+
         string columnName;
 
         stringstream ss(headerRow);
@@ -496,11 +957,25 @@ private:
         {
             if(this->markInputHeader[columnName])
             {
+                if(this->bPlusTreeColumn == "")
+                {
+                    this->bPlusTreeColumn = columnName;
+                }
                 this->markedInputHeaderIndex.push_back(totalColumnCnt);
             }
             this->outputTable.addOutputHeader(columnName);
             this->outputTable.addColumnWidth(columnName.size());
             totalColumnCnt++;
+        }
+
+        if(this->isBPlusTree)
+        {
+            this->bPlusTree.setHeaders(headerRow);
+            createMetaData();
+            vector<string>pointers;
+            vector<pair<int, int>>pairs;
+            createRootNode(pointers, pairs, 1);
+            bPlusTree.readMetaData();
         }
     }
 
@@ -535,36 +1010,32 @@ private:
         }
     }
 
-//    void processRowsBPlusTree(string valueRow)
-//    {
-//        valueRow = getLineCommaReplaceWithSpace(valueRow);
-//        vector<int>rows;
-//        int value;
-//
-//        stringstream ss(valueRow);
-//
-//        while(ss >> value)
-//        {
-//            rows.pb(value);
-//        }
-//        bool isInsert = false;
-//        if(this->markedInputHeaderIndex.size() == 1)
-//        {
-//            if(rows[this->markedInputHeaderIndex[0]] == this->searchValue)
-//            {
-//                isInsert = true;
-//            }
-//        }
-//
-//        if(isInsert)
-//        {
-//            for(int i = 0; i < rows.size(); i++)
-//            {
-//                this->outputTable.setColumnWidth(i, log10(rows[i]) + 1);
-//            }
-//            this->outputTable.addOutputRows(rows);
-//        }
-//    }
+    void processRowsBPlusTree(string valueRow, int serial)
+    {
+        valueRow = getLineCommaReplaceWithSpace(valueRow);
+        vector<int>rows;
+        int value;
+
+        stringstream ss(valueRow);
+
+        while(ss >> value)
+        {
+            rows.pb(value);
+        }
+
+        bPlusTree.setOriginalDataToBeInserted(rows);
+        pair<pair<int, int>, string>newRoot;
+        newRoot = bPlusTree.insertData(make_pair(rows[this->markedInputHeaderIndex[0]], serial), bPlusTree.getRootFileName());
+        if(newRoot.second.size())
+        {
+            vector<string>pointers;
+            vector<pair<int, int>>values;
+            pointers.pb(bPlusTree.getRootFileName());
+            pointers.pb(newRoot.second);
+            values.pb(newRoot.first);
+            createRootNode(pointers, values, 0);
+        }
+    }
 
 public:
     Select(string fileName, string outputFileName)
@@ -594,6 +1065,7 @@ public:
 
         isHeader = true;
         this->file.openFileForInput();
+        int rowCounter = 0;
         while(this->file.fin >> tableRows)
         {
             if(isHeader)
@@ -605,7 +1077,7 @@ public:
             {
                 if(this->isBPlusTree)
                 {
-
+                    processRowsBPlusTree(tableRows, ++rowCounter);
                 }
                 else
                 {
@@ -715,7 +1187,6 @@ void processSelectQuery()
     }
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
-
     select.readRows();
     select.printTable();
     select.saveOutput();
@@ -747,3 +1218,4 @@ int main()
 
     return 0;
 }
+
