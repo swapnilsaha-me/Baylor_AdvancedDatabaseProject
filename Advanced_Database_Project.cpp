@@ -105,6 +105,10 @@ public:
             this->columnWidth[index] = max(this->columnWidth[index], width);
         }
     }
+    void setOutputHeaders(vector<string>headers)
+    {
+        this->outputHeader = headers;
+    }
     vector<int> getColumnWidth()
     {
         return this->columnWidth;
@@ -197,7 +201,6 @@ private:
     bool isThereInputHeader = false;
     map<string, bool>markInputHeader;
     map<int, bool>markInputHeaderIndex;
-    map<string, bool>rowAlreadyExist;
 
     void processHeaders(string headerRow)
     {
@@ -236,30 +239,14 @@ private:
         stringstream ss(valueRow);
 
         int totalColumnCnt = 0, selectedColumnCnt = 0;
-        string str = "";
         while(ss >> value)
         {
             if(this->markInputHeaderIndex[totalColumnCnt++])
             {
                 rows.pb(value);
-                int temp = value;
-                if(!temp)
-                {
-                    str += "0";
-                }
-                while(temp)
-                {
-                    str += ((temp % 10) + '0');
-                    temp /= 10;
-                }
                 this->outputTable.setColumnWidth(selectedColumnCnt++, log10(value) + 1);
             }
         }
-        if(this->rowAlreadyExist[str])
-        {
-            return;
-        }
-        this->rowAlreadyExist[str] = 1;
         this->outputTable.addOutputRows(rows);
     }
 
@@ -294,6 +281,11 @@ public:
             }
         }
         this->file.closeFileForInput();
+    }
+
+    void setOutputHeaders(vector<string>headers)
+    {
+        this->outputTable.setOutputHeaders(headers);
     }
 
     void printTable()
@@ -1383,6 +1375,226 @@ public:
 };
 
 
+/*
+    Join
+*/
+
+class Join
+{
+private:
+    File file[2];
+    OutputTable outputTable;
+    File outputFile;
+    string crossProductFileName;
+    vector<string>allHeader;
+    vector<string>commonHeader;
+
+    void findCommonAttributes()
+    {
+        map<string, int>exist;
+        map<string, int> :: iterator it;
+        string tableRows, column;
+        for(int serial = 0; serial < 2; serial++)
+        {
+            this->file[serial].openFileForInput();
+            this->file[serial].fin >> tableRows;
+            tableRows = getLineCommaReplaceWithSpace(tableRows);
+            stringstream ss(tableRows);
+            while(ss >> column)
+            {
+                exist[column]++;
+            }
+            this->file[serial].closeFileForInput();
+        }
+        for(it = exist.begin(); it != exist.end(); it++)
+        {
+            allHeader.pb(it->first);
+            if(it->second == 2)
+            {
+                commonHeader.pb(it->first);
+            }
+        }
+    }
+
+    void applyCrossProduct()
+    {
+        this->crossProductFileName = this->outputFile.getFileName() + "_cross.csv";
+        Cross cross = Cross(this->file[0].getFileName(), this->file[1].getFileName(), this->crossProductFileName);
+        cross.readRows();
+        cross.saveOutput();
+    }
+
+    void applySelectOperator(string inputFile, string outputFile, string parameter1, string parameter2)
+    {
+        Select select = Select(inputFile, outputFile);
+        select.addHeader(parameter1, false, parameter2, 0);
+        select.readRows();
+        select.saveOutput();
+    }
+
+    void applyProjectOperator()
+    {
+        string fileName = this->outputFile.getFileName() + "_select" + ((char)(this->commonHeader.size() - 1 + '0')) + ".csv";
+        string parameter;
+
+        Projection projection(fileName, this->outputFile.getFileName());
+
+        for(int i = 0; i < this->allHeader.size(); i++)
+        {
+            bool isCommonHeader = false;
+            for(int j = 0; j < this->commonHeader.size(); j++)
+            {
+                if(allHeader[i] == commonHeader[j])
+                {
+                    isCommonHeader = true;
+                    break;
+                }
+            }
+            if(isCommonHeader)
+            {
+                string fileName = this->file[0].getFileName();
+                size_t pos = fileName.find(".csv");
+                fileName = (pos == std::string::npos) ? fileName : fileName.replace(pos, 4, "");
+                if(this->file[0].getFileName() == this->file[1].getFileName())
+                {
+                    fileName += (0 + '0' + 1);
+                }
+                parameter = fileName + "." + this->allHeader[i];
+            }
+            else
+            {
+                parameter = this->allHeader[i];
+            }
+            projection.addHeader(parameter);
+        }
+
+        projection.readRows();
+        vector<string>headers;
+        OutputTable outputTable = projection.getOutputTable();
+        for(int i = 0; i < outputTable.getOutputHeader().size(); i++)
+        {
+            headers.pb(outputTable.getOutputHeader()[i]);
+        }
+        for(int j = 0; j < headers.size(); j++)
+        {
+            for(int i = 0; i < allHeader.size(); i++)
+            {
+                bool isCommonHeader = false;
+                for(int j = 0; j < this->commonHeader.size(); j++)
+                {
+                    if(allHeader[i] == commonHeader[j])
+                    {
+                        isCommonHeader = true;
+                        break;
+                    }
+                }
+                if(isCommonHeader)
+                {
+                    string fileName = this->file[0].getFileName();
+                    size_t pos = fileName.find(".csv");
+                    fileName = (pos == std::string::npos) ? fileName : fileName.replace(pos, 4, "");
+                    if(this->file[0].getFileName() == this->file[1].getFileName())
+                    {
+                        fileName += (0 + '0' + 1);
+                    }
+                    parameter = fileName + "." + this->allHeader[i];
+                }
+
+                if(headers[j] == parameter)
+                {
+                    headers[j] = this->allHeader[i];
+                }
+            }
+        }
+
+        projection.setOutputHeaders(headers);
+        projection.printTable();
+        projection.saveOutput();
+    }
+
+public:
+    Join(string fileName1, string fileName2, string outputFileName)
+    {
+        this->file[0].setFileName(fileName1);
+        this->file[1].setFileName(fileName2);
+        this->outputFile.setFileName(outputFileName);
+    }
+
+    void printTable()
+    {
+        this->outputTable.printTable();
+    }
+
+    OutputTable getOutputTable()
+    {
+        return this->outputTable;
+    }
+
+    void readRows()
+    {
+        this->findCommonAttributes();
+        this->applyCrossProduct();
+        string inputFile, outputFile, param[2];
+        for(int i = 0; i < this->commonHeader.size(); i++)
+        {
+            for(int j = 0; j < 2; j++)
+            {
+                string fileName = this->file[j].getFileName();
+                size_t pos = fileName.find(".csv");
+                fileName = (pos == std::string::npos) ? fileName : fileName.replace(pos, 4, "");
+                if(this->file[0].getFileName() == this->file[1].getFileName())
+                {
+                    fileName += (0 + '0' + 1);
+                }
+                param[j] = fileName + "." + this->commonHeader[i];
+            }
+
+            if(i)
+            {
+                inputFile = this->outputFile.getFileName() + "_select" + ((char)(i - 1 + '0')) + ".csv";
+            }
+            else
+            {
+                inputFile = this->crossProductFileName;
+            }
+            outputFile = this->outputFile.getFileName() + "_select" + ((char)(i + '0')) + ".csv";
+            this->applySelectOperator(inputFile, outputFile, param[0], param[1]);
+        }
+        this->applyProjectOperator();
+    }
+
+    void saveOutput()
+    {
+        this->outputFile.openFileForOutput();
+        vector<string>outputHeader = this->outputTable.getOutputHeader();
+        vector<vector<int>>outputRows = this->outputTable.getOutputRows();
+        for(int i = 0; i < outputHeader.size(); i++)
+        {
+            if(i)
+            {
+                this->outputFile.fout << ",";
+            }
+            this->outputFile.fout << outputHeader[i];
+        }
+        this->outputFile.fout << endl;
+
+        for(int i = 0; i < outputRows.size(); i++)
+        {
+            for(int j = 0; j < outputRows[i].size(); j++)
+            {
+                if(j)
+                {
+                    this->outputFile.fout << ",";
+                }
+                this->outputFile.fout << outputRows[i][j];
+            }
+            this->outputFile.fout << endl;
+        }
+        this->outputFile.closeFileForOutput();
+    }
+};
+
+
 void processProjectQuery()
 {
     string fileName;
@@ -1445,6 +1657,16 @@ void processSelectQuery()
     select.saveOutput();
 }
 
+void processJoinQuery()
+{
+    string fileName1, fileName2, outputFileName;
+
+    cin >> fileName1 >> fileName2 >> outputFileName;
+    Join join(fileName1, fileName2, outputFileName);
+
+    join.readRows();
+}
+
 int main()
 {
     string query;
@@ -1463,6 +1685,10 @@ int main()
         else if(query == "select")
         {
             processSelectQuery();
+        }
+        else if(query == "join")
+        {
+            processJoinQuery();
         }
         else if(query == "clear")
         {
