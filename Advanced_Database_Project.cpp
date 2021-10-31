@@ -936,7 +936,6 @@ public:
 
                 if(currentNode.isPageFull())
                 {
-                    cout << "Full Page" << endl;
                     BPlusTreeNode leftNode, rightNode;
 
                     leftNode.setFileName(currentNode.getFileName());
@@ -948,28 +947,36 @@ public:
                     leftNode.updateLeafNodeStatus(1);
                     rightNode.updateLeafNodeStatus(1);
 
-                    vector<string>leftPointers, upperPointers, rightPointers;
-                    vector<pair<int, int>>leftValues, rightValues;
+                    vector<string>leftPointers, rightPointers;
+                    vector<pair<int, int>>leftValues, upperValues, rightValues;
+
+                    for(int i = 0; i < currentNode.getPointers().size(); i++)
+                    {
+                        if(i <= (MAX_POINTER / 2))
+                        {
+                            leftPointers.pb(currentNode.getPointers()[i]);
+                        }
+                        else
+                        {
+                            rightPointers.pb(currentNode.getPointers()[i]);
+                        }
+                    }
 
                     for(int i = 0; i < currentNode.getValues().size(); i++)
                     {
                         if(i < (MAX_POINTER / 2))
                         {
-                            leftPointers.pb(currentNode.getPointers()[i]);
                             leftValues.pb(currentNode.getValues()[i]);
                         }
                         else if(i == (MAX_POINTER / 2))
                         {
-                            upperPointers.pb(currentNode.getPointers()[i]);
+                            upperValues.pb(currentNode.getValues()[i]);
                         }
                         else
                         {
-                            rightPointers.pb(currentNode.getPointers()[i]);
                             rightValues.pb(currentNode.getValues()[i]);
                         }
                     }
-                    leftPointers.pb(rightNode.getFileName());
-                    rightPointers.pb(currentNode.getPointers()[currentNode.getPointers().size() - 1]);
 
                     //cout << rightNode.getFileName() << ", " << currentNode.getPointers()[currentNode.getPointers().size() - 1] << endl;
 
@@ -986,7 +993,7 @@ public:
                     leftNode.writeRows();
                     rightNode.writeRows();
 
-                    return make_pair(rightValues[0], rightNode.getFileName());
+                    return make_pair(upperValues[0], rightNode.getFileName());
                 }
             }
         }
