@@ -197,6 +197,7 @@ private:
     bool isThereInputHeader = false;
     map<string, bool>markInputHeader;
     map<int, bool>markInputHeaderIndex;
+    map<string, bool>rowAlreadyExist;
 
     void processHeaders(string headerRow)
     {
@@ -235,14 +236,30 @@ private:
         stringstream ss(valueRow);
 
         int totalColumnCnt = 0, selectedColumnCnt = 0;
+        string str = "";
         while(ss >> value)
         {
             if(this->markInputHeaderIndex[totalColumnCnt++])
             {
                 rows.pb(value);
+                int temp = value;
+                if(!temp)
+                {
+                    str += "0";
+                }
+                while(temp)
+                {
+                    str += ((temp % 10) + '0');
+                    temp /= 10;
+                }
                 this->outputTable.setColumnWidth(selectedColumnCnt++, log10(value) + 1);
             }
         }
+        if(this->rowAlreadyExist[str])
+        {
+            return;
+        }
+        this->rowAlreadyExist[str] = 1;
         this->outputTable.addOutputRows(rows);
     }
 
