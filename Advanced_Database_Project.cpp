@@ -1605,7 +1605,7 @@ bool checkFileExistence(string filename)
 
 }
 
-void raiseFileNotFoundError (string filename)
+void raiseFileNotFoundError(string filename)
 {
     cout<<"ERROR: '"<< filename <<"' not found."<<endl;
     cout<<"Fix 1: Check file name."<<endl;
@@ -1613,6 +1613,30 @@ void raiseFileNotFoundError (string filename)
     cout<<"Fix 3: Make sure your file is in the same folder as Advanced_Database_Project.exe file."<<endl;
 
     cout<<endl;
+}
+
+bool checkParameters(string fileName, vector<string>headers)
+{
+    File file;
+    file.setFileName(fileName);
+    file.openFileForInput();
+    string tableRows, columnName;
+    file.fin >> tableRows;
+    tableRows = getLineCommaReplaceWithSpace(tableRows);
+    stringstream ss(tableRows);
+    map<string, bool>mark;
+    while(ss >> columnName)
+    {
+        mark[columnName] = true;
+    }
+    for(int i = 0; i < headers.size(); i++)
+    {
+        if(!mark[headers[i]])
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 void processProjectQuery()
@@ -1631,6 +1655,8 @@ void processProjectQuery()
         return;
     }
 
+    vector<string>headers;
+
     Projection projection(fileName, outputFileName);
 
     getline(cin, parameter);
@@ -1638,7 +1664,14 @@ void processProjectQuery()
 
     while(ss >> parameter)
     {
+        headers.pb(parameter);
         projection.addHeader(parameter);
+    }
+
+    if(!checkParameters(fileName, headers))
+    {
+        /// Write some error message.
+        return;
     }
 
     projection.readRows();
@@ -1708,6 +1741,24 @@ void processSelectQuery()
             break;
         }
         searchValue = (searchValue * 10) + (parameter2[i] - '0');
+    }
+
+    vector<string>headers;
+    headers.pb(parameter1);
+    if(!isNumber)
+    {
+        if(parameter1 == parameter2)
+        {
+            /// Two parameters can not be equal
+            return;
+        }
+        headers.pb(parameter2);
+    }
+
+    if(!checkParameters(fileName, headers))
+    {
+        /// Write some error message.
+        return;
     }
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
