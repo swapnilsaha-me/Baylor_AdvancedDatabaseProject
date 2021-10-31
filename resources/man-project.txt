@@ -6,5 +6,7 @@ Example: project fname oname A B C
 	- Creates a new header row with attributes A B and C.
 	- Sequentially access each row, extracting the values for those columns
 
+Example Query-
 Query >> project db.csv out.csv
 Query >> project db.csv out.csv id marks age
+_____________________________________________

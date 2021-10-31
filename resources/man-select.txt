@@ -12,5 +12,7 @@ Case 2: select fname oname A 10
 	- The project should output those rows indicated by the B+-Tree
 	- The values in the file do not have to be unique
 
+Example Query-
 Query >> select db.csv out.csv marks age
 Query >> select db.csv out.csv id 5
+__________________________________________

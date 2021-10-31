@@ -658,6 +658,23 @@ public:
     }
 };
 
+bool checkFileExistence(string filename) {
+
+     if (!std::fstream{filename}){
+        return false;
+     }
+     return true;
+
+}
+
+void raiseFileNotFoundError (string filename) {
+    cout<<"ERROR: '"<< filename <<"' not found."<<endl;
+        cout<<"Fix 1: Check file name."<<endl;
+        cout<<"Fix 2: File Extension (.csv) is required."<<endl;
+        cout<<"Fix 3: Make sure your file is in the same folder as Advanced_Database_Project.exe file."<<endl;
+
+        cout<<endl;
+}
 
 void processProjectQuery()
 {
@@ -666,6 +683,14 @@ void processProjectQuery()
     string parameter;
 
     cin >> fileName >> outputFileName;
+
+    bool fileExists = checkFileExistence(fileName);
+
+    if (!fileExists) {
+        raiseFileNotFoundError(fileName);
+        return;
+    }
+
     Projection projection(fileName, outputFileName);
 
     getline(cin, parameter);
@@ -686,6 +711,19 @@ void processCrossQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
+
+    bool file1Exists = checkFileExistence(fileName1);
+    bool file2Exists = checkFileExistence(fileName2);
+
+    if (!file1Exists || !file2Exists) {
+        if (!file1Exists) {
+            raiseFileNotFoundError(fileName1);
+        } else if (!file2Exists){
+            raiseFileNotFoundError(fileName2);
+        }
+        return;
+    }
+
     Cross cross(fileName1, fileName2, outputFileName);
 
     cross.readRows();
@@ -699,6 +737,14 @@ void processSelectQuery()
     string parameter1, parameter2;
 
     cin >> fileName >> outputFileName;
+
+    bool fileExists = checkFileExistence(fileName);
+
+    if (!fileExists) {
+        raiseFileNotFoundError(fileName);
+        return;
+    }
+
     Select select(fileName, outputFileName);
 
     cin >> parameter1 >> parameter2;
@@ -756,7 +802,7 @@ void showOperatorManual () {
         readAndPrintFile("resources/man-cross.txt");
     }
     else {
-        cout<<"Enter valid operator name."<<endl;
+        cout<<"ERROR: '"<< operatorName <<"' not found."<<endl;
     }
 
 }
@@ -794,6 +840,11 @@ int main()
         }
         else if (query == "man") {
             showOperatorManual();
+        }
+        else {
+            cout<<"ERROR: '"<< query <<"' is not defined."<<endl;
+            cout<<"Enter -h to check the query syntax."<<endl;
+            cin.sync();
         }
     }
 
