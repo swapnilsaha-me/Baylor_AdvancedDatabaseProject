@@ -1,0 +1,19 @@
+Supported Query
+1. Selection ('select' operator)- Enter 'man select' for more details
+	a) select db.csv out.csv marks age
+	b) select db.csv out.csv id 5
+
+2. Projection ('project' operator)- Enter 'man project' for more details
+	a) project db.csv out.csv
+	b) project db.csv out.csv id marks age
+
+3. Cross-Product ('cross' operator)- Enter 'man cross' for more details
+	a) cross db.csv dbb.csv out.csv
+
+4. Natural Join ('join' operator)- Enter 'man join' for more details
+	a) join db.csv dbb.csv out.csv
+
+
+Contact Developer:
+1. Swapnil Saha (swapnil_saha1@baylor.edu)
+2. Razwan Ahmed Tanvir (razwan_tanvir1@baylor.edu)

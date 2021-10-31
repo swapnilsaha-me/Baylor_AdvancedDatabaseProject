@@ -1595,6 +1595,26 @@ public:
 };
 
 
+bool checkFileExistence(string filename)
+{
+    if(!std::fstream{filename})
+    {
+        return false;
+    }
+    return true;
+
+}
+
+void raiseFileNotFoundError (string filename)
+{
+    cout<<"ERROR: '"<< filename <<"' not found."<<endl;
+    cout<<"Fix 1: Check file name."<<endl;
+    cout<<"Fix 2: File Extension (.csv) is required."<<endl;
+    cout<<"Fix 3: Make sure your file is in the same folder as Advanced_Database_Project.exe file."<<endl;
+
+    cout<<endl;
+}
+
 void processProjectQuery()
 {
     string fileName;
@@ -1602,6 +1622,15 @@ void processProjectQuery()
     string parameter;
 
     cin >> fileName >> outputFileName;
+
+    bool fileExists = checkFileExistence(fileName);
+
+    if(!fileExists)
+    {
+        raiseFileNotFoundError(fileName);
+        return;
+    }
+
     Projection projection(fileName, outputFileName);
 
     getline(cin, parameter);
@@ -1622,6 +1651,27 @@ void processCrossQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
+
+    bool file1Exists = checkFileExistence(fileName1);
+    bool file2Exists = checkFileExistence(fileName2);
+
+    if(!file1Exists || !file2Exists)
+    {
+        if(!file1Exists && !file2Exists)
+        {
+            raiseFileNotFoundError(fileName1 + ", " + fileName2);
+        }
+        else if(!file1Exists)
+        {
+            raiseFileNotFoundError(fileName1);
+        }
+        else if(!file2Exists)
+        {
+            raiseFileNotFoundError(fileName2);
+        }
+        return;
+    }
+
     Cross cross(fileName1, fileName2, outputFileName);
 
     cross.readRows();
@@ -1635,6 +1685,15 @@ void processSelectQuery()
     string parameter1, parameter2;
 
     cin >> fileName >> outputFileName;
+
+    bool fileExists = checkFileExistence(fileName);
+
+    if(!fileExists)
+    {
+        raiseFileNotFoundError(fileName);
+        return;
+    }
+
     Select select(fileName, outputFileName);
 
     cin >> parameter1 >> parameter2;
@@ -1652,6 +1711,7 @@ void processSelectQuery()
     }
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
+
     select.readRows();
     select.printTable();
     select.saveOutput();
@@ -1662,17 +1722,84 @@ void processJoinQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
-    Join join(fileName1, fileName2, outputFileName);
 
+    bool file1Exists = checkFileExistence(fileName1);
+    bool file2Exists = checkFileExistence(fileName2);
+
+    if(!file1Exists || !file2Exists)
+    {
+        if(!file1Exists && !file2Exists)
+        {
+            raiseFileNotFoundError(fileName1 + ", " + fileName2);
+        }
+        else if(!file1Exists)
+        {
+            raiseFileNotFoundError(fileName1);
+        }
+        else if(!file2Exists)
+        {
+            raiseFileNotFoundError(fileName2);
+        }
+        return;
+    }
+
+    Join join(fileName1, fileName2, outputFileName);
     join.readRows();
+}
+
+void readAndPrintFile (string path)
+{
+    std::ifstream file(path);
+    std::string str;
+    while (std::getline(file, str))
+    {
+        cout<<str<<endl;
+    }
+    cout<<endl;
+    file.close();
+}
+
+void printConsole()
+{
+    readAndPrintFile("resources/head.txt");
+
+}
+
+void loadHelpFile()
+{
+    readAndPrintFile("resources/helpfile.txt");
+}
+
+void showOperatorManual()
+{
+    string operatorName;
+    cin >> operatorName;
+
+    if (operatorName == "select")
+    {
+        readAndPrintFile("resources/man-select.txt");
+    }
+    else if (operatorName == "project")
+    {
+        readAndPrintFile("resources/man-project.txt");
+    }
+    else if (operatorName == "cross")
+    {
+        readAndPrintFile("resources/man-cross.txt");
+    }
+    else
+    {
+        cout<<"ERROR: '"<< operatorName <<"' not found."<<endl;
+    }
 }
 
 int main()
 {
     string query;
 
-    while(cout << "Query >> ", cin >>
-            query)
+    printConsole();
+
+    while(cout << "Query >> ", cin >> query)
     {
         if(query == "project")
         {
@@ -1693,9 +1820,27 @@ int main()
         else if(query == "clear")
         {
             system("CLS");
+            printConsole();
+        }
+        else if (query == "exit")
+        {
+            exit(0);
+        }
+        else if (query == "-h")
+        {
+            loadHelpFile();
+        }
+        else if (query == "man")
+        {
+            showOperatorManual();
+        }
+        else
+        {
+            cout<<"ERROR: '"<< query <<"' is not defined."<<endl;
+            cout<<"Enter -h to check the query syntax."<<endl;
+            cin.sync();
         }
     }
 
     return 0;
 }
-

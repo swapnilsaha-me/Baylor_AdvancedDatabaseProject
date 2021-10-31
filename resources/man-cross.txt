@@ -1,0 +1,11 @@
+The cross-product operator will take three parameters
+	- The name of the first file
+	- The name of the second file
+	- The name of the output file
+	- Example: cross f1 f2 oname
+		-Creates a new header row with all of the attributes from f1 followed by all of the attributes from f2
+		-For each row in f1, combine it with every row in f2, outputting all of the desired values
+
+Example Query-
+Query >> cross db.csv dbb.csv out.csv
+______________________________________

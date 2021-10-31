@@ -1,0 +1,12 @@
+The projection operator will take a variable number of parameters, the first is the name of the input file, 
+the second is the name of the output file and then one for each attribute to be returned in the result. 
+If there is only one parameter, return the entire row.
+
+Example: project fname oname A B C
+	- Creates a new header row with attributes A B and C.
+	- Sequentially access each row, extracting the values for those columns
+
+Example Query-
+Query >> project db.csv out.csv
+Query >> project db.csv out.csv id marks age
+_____________________________________________
