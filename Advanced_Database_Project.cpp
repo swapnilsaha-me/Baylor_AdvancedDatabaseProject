@@ -577,6 +577,11 @@ public:
         this->originalValue = originalValue;
     }
 
+    vector<int> getOriginalValues()
+    {
+        return this->originalValue;
+    }
+
     void readRows()
     {
         this->file.openFileForInput();
@@ -944,8 +949,8 @@ public:
                     leftNode.updateOriginalDataStatus(0);
                     rightNode.updateOriginalDataStatus(0);
 
-                    leftNode.updateLeafNodeStatus(1);
-                    rightNode.updateLeafNodeStatus(1);
+                    leftNode.updateLeafNodeStatus(0);
+                    rightNode.updateLeafNodeStatus(0);
 
                     vector<string>leftPointers, rightPointers;
                     vector<pair<int, int>>leftValues, upperValues, rightValues;
@@ -999,6 +1004,122 @@ public:
         }
         return make_pair(make_pair(0, 0), "");
     }
+
+    OutputTable searchData(pair<int, int>searchValue, string currentNodeFileName, bool isAlreadyMatched, bool isAllLeft)
+    {
+        //cout << "currentNodeFileName: " << currentNodeFileName << endl;
+        //return;
+        BPlusTreeNode currentNode;
+        currentNode.setFileName(currentNodeFileName);
+        currentNode.readRows();
+
+        vector<string> pointers = currentNode.getPointers();
+        vector<pair<int, int>>values = currentNode.getValues();
+
+        //Original data
+        if(currentNode.isLeafNode())
+        {
+            //cout << "Reached" << endl;
+            OutputTable outputTable;
+
+            string header = getLineCommaReplaceWithSpace(this->getHeaders());
+            stringstream ss(header);
+
+            while(ss >> header)
+            {
+                outputTable.addOutputHeader(header);
+                outputTable.addColumnWidth(header.size());
+            }
+
+            bool done = false;
+            while(!done)
+            {
+                for(int i = 0; i < values.size(); i++)
+                {
+                    //cout << "Check: " << searchValue.first << ", " << values[i].first << endl;
+                    if(searchValue.first < values[i].first)
+                    {
+                        done = true;
+                        break;
+                    }
+                    if(searchValue.first == values[i].first)
+                    {
+                        BPlusTreeNode node;
+                        node.setFileName(pointers[i]);
+                        node.readRows();
+                        outputTable.addOutputRows(node.getOriginalValues());
+                        for(int j = 0; j < node.getOriginalValues().size(); j++)
+                        {
+                            outputTable.setColumnWidth(j, log10(node.getOriginalValues()[j]) + 1);
+                        }
+                    }
+                }
+
+                if(done)
+                {
+                    break;
+                }
+
+                //cout << "Last : " << pointers[pointers.size() - 1] << endl;
+                BPlusTreeNode temp;
+                temp.setFileName(pointers[pointers.size() - 1]);
+                temp.readRows();
+                if(!temp.isOriginalDataNode())
+                {
+                    //cout << "Aschi" << endl;
+                    pointers.clear();
+                    values.clear();
+                    pointers = temp.getPointers();
+                    values = temp.getValues();
+                }
+                else
+                {
+                    done = true;
+                }
+            }
+            return outputTable;
+        }
+        bool isFound = false;
+        string childNode;
+        if(isAlreadyMatched || isAllLeft)
+        {
+            if(searchValue.first == values[0].first)
+            {
+                isFound = true;
+                childNode = pointers[0];
+            }
+        }
+        if(!isFound)
+        {
+            for(int i = 0; i < values.size(); i++)
+            {
+                //cout << searchValue.first << " " << searchValue.second << endl;
+                if(searchValue.first < values[i].first)
+                {
+                    isFound = true;
+                    childNode = pointers[i];
+                    break;
+                }
+                if(searchValue.first == values[i].first)
+                {
+                    isAlreadyMatched = true;
+                    isAllLeft = false;
+                    if(i + 1 < pointers.size())
+                    {
+                        isFound = true;
+                        childNode = pointers[i + 1];
+                    }
+                    break;
+                }
+            }
+        }
+        if(!isFound)
+        {
+            childNode = pointers[pointers.size() - 1];
+        }
+        return searchData(searchValue, childNode, isAlreadyMatched, isAllLeft);
+    }
+
 };
 
 /*
@@ -1011,12 +1132,12 @@ class Select
 private:
     File file;
     BPlusTree bPlusTree;
-    OutputTable processedTable;
     OutputTable outputTable;
     File outputFile;
 
     bool isBPlusTree;
     int searchValue;
+    bool bPlusTreeAlreadyBuilt;
     string bPlusTreeColumn;
     map<string, bool>markInputHeader;
     vector<int>markedInputHeaderIndex;
@@ -1067,11 +1188,13 @@ private:
 
         if(this->isBPlusTree)
         {
+            this->bPlusTreeAlreadyBuilt = true;
             this->bPlusTree.setHeaders(headerRow);
             string metaDataFileName = this->file.getFileName() + "." + this->bPlusTreeColumn + ".btree";
             bPlusTree.setMetaDataFileName(metaDataFileName);
             if(!file_exists(metaDataFileName))
             {
+                this->bPlusTreeAlreadyBuilt = false;
                 createMetaData(metaDataFileName);
                 vector<string>pointers;
                 vector<pair<int, int>>pairs;
@@ -1139,6 +1262,11 @@ private:
         }
     }
 
+    void searchBPlusTree()
+    {
+        this->outputTable = bPlusTree.searchData(make_pair(this->searchValue, -1e9), bPlusTree.getRootFileName(), false, true);
+    }
+
 public:
     Select(string fileName, string outputFileName)
     {
@@ -1163,30 +1291,35 @@ public:
     void readRows()
     {
         string tableRows;
-        bool isHeader;
 
-        isHeader = true;
         this->file.openFileForInput();
-        int rowCounter = 0;
-        while(this->file.fin >> tableRows)
+        bool isMetaDataExist;
+
+        if(this->file.fin >> tableRows)
         {
-            if(isHeader)
+            processHeaders(tableRows);
+        }
+
+        if(this->isBPlusTree)
+        {
+            if(!this->bPlusTreeAlreadyBuilt)
             {
-                processHeaders(tableRows);
-                isHeader = false;
-            }
-            else
-            {
-                if(this->isBPlusTree)
+                int rowCounter = 0;
+                while(this->file.fin >> tableRows)
                 {
                     processRowsBPlusTree(tableRows, ++rowCounter);
                 }
-                else
-                {
-                    processRowsLinearSearch(tableRows);
-                }
+            }
+            searchBPlusTree();
+        }
+        else
+        {
+            while(this->file.fin >> tableRows)
+            {
+                processRowsLinearSearch(tableRows);
             }
         }
+
         this->file.closeFileForInput();
     }
 
@@ -1285,7 +1418,7 @@ void processSelectQuery()
             isNumber = false;
             break;
         }
-        searchValue = (searchValue * 10) + parameter2[i];
+        searchValue = (searchValue * 10) + (parameter2[i] - '0');
     }
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
