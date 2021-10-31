@@ -911,6 +911,7 @@ public:
                 File file = insertNode->first;
             }
         }*/
+        return make_pair(make_pair(0, 0), "");
     }
 };
 
@@ -947,10 +948,8 @@ private:
         bPlusTree.writeMetaData();
     }
 
-    void createMetaData()
+    void createMetaData(string metaDataFileName)
     {
-        string metaDataFileName = this->outputFile.getFileName() + "." + this->bPlusTreeColumn + ".btree";
-        bPlusTree.setMetaDataFileName(metaDataFileName);
         bPlusTree.setFilePrefix(metaDataFileName);
         bPlusTree.setRootFileName(metaDataFileName + "0");
         bPlusTree.setNextFileSerial("0");
@@ -983,10 +982,11 @@ private:
         if(this->isBPlusTree)
         {
             this->bPlusTree.setHeaders(headerRow);
-            string metaDataFileName = this->outputFile.getFileName() + "." + this->bPlusTreeColumn + ".btree";
+            string metaDataFileName = this->file.getFileName() + "." + this->bPlusTreeColumn + ".btree";
+            bPlusTree.setMetaDataFileName(metaDataFileName);
             if(!file_exists(metaDataFileName))
             {
-                createMetaData();
+                createMetaData(metaDataFileName);
                 vector<string>pointers;
                 vector<pair<int, int>>pairs;
                 createRootNode(pointers, pairs, 1);
