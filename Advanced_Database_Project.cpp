@@ -1081,36 +1081,37 @@ public:
         }
         bool isFound = false;
         string childNode;
-        if(isAlreadyMatched || isAllLeft)
+
+        for(int i = 0; i < values.size(); i++)
         {
-            if(searchValue.first == values[0].first)
+            //cout << searchValue.first << " " << searchValue.second << endl;
+            if(isAlreadyMatched || isAllLeft)
             {
-                isFound = true;
-                childNode = pointers[0];
-            }
-        }
-        if(!isFound)
-        {
-            for(int i = 0; i < values.size(); i++)
-            {
-                //cout << searchValue.first << " " << searchValue.second << endl;
-                if(searchValue.first < values[i].first)
+                if(searchValue.first == values[i].first)
                 {
                     isFound = true;
+                    isAlreadyMatched = true;
+                    isAllLeft = false;
                     childNode = pointers[i];
                     break;
                 }
-                if(searchValue.first == values[i].first)
+            }
+            if(searchValue.first < values[i].first)
+            {
+                isFound = true;
+                childNode = pointers[i];
+                break;
+            }
+            if(searchValue.first == values[i].first)
+            {
+                isAlreadyMatched = true;
+                isAllLeft = false;
+                if(i + 1 < pointers.size())
                 {
-                    isAlreadyMatched = true;
-                    isAllLeft = false;
-                    if(i + 1 < pointers.size())
-                    {
-                        isFound = true;
-                        childNode = pointers[i + 1];
-                    }
-                    break;
+                    isFound = true;
+                    childNode = pointers[i + 1];
                 }
+                break;
             }
         }
         if(!isFound)
