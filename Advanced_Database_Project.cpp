@@ -40,6 +40,17 @@ bool pair_compare(pair<int, int>a, pair<int, int>b)
     return a.first <= b.first;
 }
 
+bool file_exists(string fileName)
+{
+    ifstream ifile;
+    ifile.open(fileName);
+    if(ifile)
+    {
+        return true;
+    }
+    return false;
+}
+
 class File
 {
 private:
@@ -932,6 +943,7 @@ private:
         bPlusTreeNode.setPointers(pointers);
         bPlusTreeNode.setValues(values);
         bPlusTreeNode.writeRows();
+        bPlusTree.setRootFileName(bPlusTreeNode.getFileName());
         bPlusTree.writeMetaData();
     }
 
@@ -971,10 +983,14 @@ private:
         if(this->isBPlusTree)
         {
             this->bPlusTree.setHeaders(headerRow);
-            createMetaData();
-            vector<string>pointers;
-            vector<pair<int, int>>pairs;
-            createRootNode(pointers, pairs, 1);
+            string metaDataFileName = this->outputFile.getFileName() + "." + this->bPlusTreeColumn + ".btree";
+            if(!file_exists(metaDataFileName))
+            {
+                createMetaData();
+                vector<string>pointers;
+                vector<pair<int, int>>pairs;
+                createRootNode(pointers, pairs, 1);
+            }
             bPlusTree.readMetaData();
         }
     }
@@ -1196,7 +1212,8 @@ int main()
 {
     string query;
 
-    while(cout << "Query >> ", cin >> query)
+    while(cout << "Query >> ", cin >>
+            query)
     {
         if(query == "project")
         {
