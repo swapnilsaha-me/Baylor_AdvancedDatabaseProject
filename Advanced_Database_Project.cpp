@@ -31,13 +31,13 @@ string getLineCommaReplaceWithSpace(string str)
     return str;
 }
 
-bool pair_compare(pair<int, int>a, pair<int, int>b)
+bool pair_compare_less(pair<int, int>a, pair<int, int>b)
 {
     if(a.first == b.first)
     {
-        return a.second <= b.second;
+        return a.second < b.second;
     }
-    return a.first <= b.first;
+    return a.first < b.first;
 }
 
 bool file_exists(string fileName)
@@ -818,7 +818,7 @@ public:
             int loc = 0;
             for(int i = 0; i < values.size(); i++)
             {
-                if(pair_compare(insertValue, values[i]))
+                if(pair_compare_less(insertValue, values[i]))
                 {
                     isInserted = true;
                     loc = i;
@@ -889,28 +889,107 @@ public:
             return make_pair(make_pair(0, 0), "");
         }
         //Non-Leaf Node
-        /*else
+        else
         {
             bool isFound = false;
+            string childFileName;
             for(int i = 0; i < values.size(); i++)
             {
-                if(pair_compare(insertNode, values))
+                if(pair_compare_less(insertValue, values[i]))
                 {
                     isFound = true;
-                    BPlusTreeNode childNode;
-                    childNode.setFileName(pointers[i]);
-                    insertNode = insertData(childNode);
-                    File file = insertNode->first;
+                    childFileName = pointers[i];
+                    break;
                 }
             }
             if(!isFound)
             {
-                BPlusTreeNode childNode;
-                childNode.setFileName(pointers[pointers.size() - 1]);
-                insertNode = insertData(childNode);
-                File file = insertNode->first;
+                childFileName = pointers[pointers.size() - 1];
             }
-        }*/
+
+            pair<pair<int, int>, string> pointerToBeAdded;
+            pointerToBeAdded = insertData(insertValue, childFileName);
+
+            if(pointerToBeAdded.second.size())
+            {
+                bool isInserted = false;
+                int loc = 0;
+                for(int i = 0; i < values.size(); i++)
+                {
+                    if(pair_compare_less(pointerToBeAdded.first, values[i]))
+                    {
+                        isInserted = true;
+                        loc = i;
+                        break;
+                    }
+                }
+                if(!isInserted)
+                {
+                    loc = values.size();
+                }
+
+                pointers.insert(pointers.begin() + loc + 1, pointerToBeAdded.second);
+                values.insert(values.begin() + loc, pointerToBeAdded.first);
+                currentNode.setPointers(pointers);
+                currentNode.setValues(values);
+                currentNode.writeRows();
+
+                if(currentNode.isPageFull())
+                {
+                    cout << "Full Page" << endl;
+                    BPlusTreeNode leftNode, rightNode;
+
+                    leftNode.setFileName(currentNode.getFileName());
+                    rightNode.setFileName(this->getNextFileNameWithPrefix());
+
+                    leftNode.updateOriginalDataStatus(0);
+                    rightNode.updateOriginalDataStatus(0);
+
+                    leftNode.updateLeafNodeStatus(1);
+                    rightNode.updateLeafNodeStatus(1);
+
+                    vector<string>leftPointers, upperPointers, rightPointers;
+                    vector<pair<int, int>>leftValues, rightValues;
+
+                    for(int i = 0; i < currentNode.getValues().size(); i++)
+                    {
+                        if(i < (MAX_POINTER / 2))
+                        {
+                            leftPointers.pb(currentNode.getPointers()[i]);
+                            leftValues.pb(currentNode.getValues()[i]);
+                        }
+                        else if(i == (MAX_POINTER / 2))
+                        {
+                            upperPointers.pb(currentNode.getPointers()[i]);
+                        }
+                        else
+                        {
+                            rightPointers.pb(currentNode.getPointers()[i]);
+                            rightValues.pb(currentNode.getValues()[i]);
+                        }
+                    }
+                    leftPointers.pb(rightNode.getFileName());
+                    rightPointers.pb(currentNode.getPointers()[currentNode.getPointers().size() - 1]);
+
+                    //cout << rightNode.getFileName() << ", " << currentNode.getPointers()[currentNode.getPointers().size() - 1] << endl;
+
+                    leftNode.setPointers(leftPointers);
+                    rightNode.setPointers(rightPointers);
+
+                    leftNode.setValues(leftValues);
+                    rightNode.setValues(rightValues);
+
+                    //cout << "FileName: " << leftNode.getFileName() << ", " << rightNode.getFileName() << endl;
+                    //cout << "Pointers: " << leftNode.getPointers().size() << ", " << rightNode.getPointers().size() << endl;
+                    //cout << "Values: " << leftNode.getValues().size() << ", " << rightNode.getValues().size() << endl;
+
+                    leftNode.writeRows();
+                    rightNode.writeRows();
+
+                    return make_pair(rightValues[0], rightNode.getFileName());
+                }
+            }
+        }
         return make_pair(make_pair(0, 0), "");
     }
 };
