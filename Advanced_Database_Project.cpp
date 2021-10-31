@@ -4,7 +4,7 @@ using namespace std;
 #define sf              scanf
 #define pf              printf
 #define pb              push_back
-#define MAX_POINTER     4
+#define MAX_POINTER     100
 
 /*
     Projection:
