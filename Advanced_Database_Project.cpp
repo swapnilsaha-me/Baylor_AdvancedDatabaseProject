@@ -1130,6 +1130,114 @@ public:
         return searchData(searchValue, childNode, isAlreadyMatched, isAllLeft);
     }
 
+    void printOriginalData(string parent, string ownFileName, vector<int>originalData)
+    {
+        for(int i = 0; i < 50; i++)
+        {
+            cout << "-";
+        }
+        cout << "\n";
+        cout << " >> Parent  Pointer Name : ## " << parent << endl;
+        cout << " >> Current Pointer Name : ## " << ownFileName << "\n" << endl;
+
+        OutputTable outputTable;
+        stringstream ss(this->getHeaders());
+        vector<string>headers;
+        string columnName;
+        while(ss >> columnName)
+        {
+            headers.pb(columnName);
+        }
+        outputTable.setOutputHeaders(headers);
+        outputTable.addOutputRows(originalData);
+        for(int i = 0; i < headers.size(); i++)
+        {
+            outputTable.addColumnWidth(headers[i].size());
+            outputTable.setColumnWidth(i, log10(originalData[i]) + 1);
+        }
+        outputTable.printTable();
+        for(int i = 0; i < 50; i++)
+        {
+            cout << "-";
+        }
+        cout << "\n\n\n";
+    }
+
+    void printBPlusTreeNode(string parent, string ownFileName, vector<string> pointers, vector<pair<int, int>>values)
+    {
+        for(int i = 0; i < 50; i++)
+        {
+            cout << "-";
+        }
+        cout << "\n";
+        cout << " >> Parent  Pointer Name : ## " << parent << endl;
+        cout << " >> Current Pointer Name : ## " << ownFileName << "\n" << endl;
+        for(int i = 0, j = 0, k = 0; i < pointers.size() + values.size(); i++)
+        {
+            if(i & 1)
+            {
+                cout << "Attribute Value : "  <<values[j].first << ", ROW_NUM : " << values[j].second << endl;
+                j++;
+            }
+            else
+            {
+                cout << "## " << pointers[k] << endl;
+                k++;
+            }
+        }
+        for(int i = 0; i < 50; i++)
+        {
+            cout << "-";
+        }
+        cout << "\n\n\n";
+    }
+
+    void printBPlusTree()
+    {
+        this->readMetaData();
+        queue<pair<string, string>>Q;
+        Q.push(make_pair("NULL", this->rootFileName));
+        while(!Q.empty())
+        {
+            pair<string, string> node = Q.front();
+            string parentFileName = node.first;
+            string fileName = node.second;
+
+            Q.pop();
+
+            BPlusTreeNode currentNode;
+            currentNode.setFileName(fileName);
+            currentNode.readRows();
+
+            vector<string>pointers = currentNode.getPointers();
+            vector<pair<int, int>>values = currentNode.getValues();
+
+            if(currentNode.isOriginalDataNode())
+            {
+                printOriginalData(parentFileName, fileName, currentNode.getOriginalValues());
+            }
+            else
+            {
+                printBPlusTreeNode(parentFileName, fileName, pointers, values);
+            }
+
+            if(currentNode.isLeafNode() && pointers.size() > values.size())
+            {
+                for(int i = 0; i < pointers.size() - 1; i++)
+                {
+                    Q.push(make_pair(fileName, pointers[i]));
+                }
+            }
+            else
+            {
+                for(int i = 0; i < pointers.size(); i++)
+                {
+                    Q.push(make_pair(fileName, pointers[i]));
+                }
+            }
+        }
+    }
+
 };
 
 /*
@@ -1798,6 +1906,32 @@ void processJoinQuery()
     join.readRows();
 }
 
+void processBTreeQuery()
+{
+    string fileName;
+
+    cin >> fileName;
+
+    bool fileExists = checkFileExistence(fileName);
+
+    if(!fileExists)
+    {
+        raiseFileNotFoundError(fileName);
+        return;
+    }
+
+    size_t pos = fileName.find(".btree");
+    if(pos == std::string::npos)
+    {
+        /// Not Valid btree file.
+        return;
+    }
+
+    BPlusTree bPlusTree;
+    bPlusTree.setMetaDataFileName(fileName);
+    bPlusTree.printBPlusTree();
+}
+
 void readAndPrintFile (string path)
 {
     std::ifstream file(path);
@@ -1867,6 +2001,10 @@ int main()
         else if(query == "join")
         {
             processJoinQuery();
+        }
+        else if(query == "btree")
+        {
+            processBTreeQuery();
         }
         else if(query == "clear")
         {
