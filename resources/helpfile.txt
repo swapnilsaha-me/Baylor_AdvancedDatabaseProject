@@ -13,6 +13,9 @@ Supported Query
 4. Natural Join ('join' operator)- Enter 'man join' for more details
 	a) join db.csv dbb.csv out.csv
 
+5. Btree ('btree' operator)- Enter 'man btree' for more details
+	a) btree db.csv.id.btree
+
 
 Contact Developer:
 1. Swapnil Saha (swapnil_saha1@baylor.edu)

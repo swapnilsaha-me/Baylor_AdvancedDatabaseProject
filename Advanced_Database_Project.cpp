@@ -2005,6 +2005,9 @@ void showOperatorManual()
     else if (operatorName == "btree") {
         readAndPrintFile("resources/man-btree.txt");
     }
+    else if (operatorName == "join") {
+        readAndPrintFile("resources/man-join.txt");
+    }
     else
     {
         cout<<"ERROR: '"<< operatorName <<"' not found."<<endl;

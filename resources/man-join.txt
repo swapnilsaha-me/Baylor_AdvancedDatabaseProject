@@ -1,0 +1,16 @@
+The natural join operator will take three parameters
+	-The name of the first file
+	-The name of the second file
+	-The name of the output file
+
+
+Example: join f1 f2 oname
+	-The operator determines the common attributes between f1 and f2
+	-The operator uses your cross product operator to generate the cross product of f1 and f2, storing the result in a file
+	-The operator uses the select operator as many times as needed, to select the rows which satisfy the natural join constraint. Each intermediate result should be stored in a file.
+	-The operator uses the project operator one time to eliminate duplicate columns between f1 and f2
+
+
+Example Query-
+Query >> join db.csv dbb.csv out.csv
+__________________________________________
