@@ -6,19 +6,6 @@ using namespace std;
 #define pb              push_back
 #define MAX_POINTER     100
 
-/*
-    Projection:
-
-    1. Will be there any null values for any column / input column?
-    2. Will be there any empty line at the beginning or in between rows?
-    3. Will be there any header which is null?
-    4. If there is an input column which is not present in the table, then what to do?
-    5. If the file doesn't exist, then what to do?
-    6. Will be there any space in header name?
-    7. What will be the output if multiple rows provide same pairs of tuple?
-        Should we output all? Or only one row?
-*/
-
 string getLineCommaReplaceWithSpace(string str)
 {
     for(int i = 0; i < str.size(); i++)
@@ -329,11 +316,6 @@ public:
     }
 };
 
-/*
-    Cross:
-        1. If we have time, then we will try to implement cross for multiple table.
-*/
-
 class Cross
 {
 private:
@@ -496,10 +478,6 @@ public:
         this->outputFile.closeFileForOutput();
     }
 };
-
-/*
-    BPlusTree
-*/
 
 class BPlusTreeNode
 {
@@ -1240,10 +1218,6 @@ public:
 
 };
 
-/*
-    Select:
-
-*/
 
 class Select
 {
@@ -1482,11 +1456,6 @@ public:
     }
 };
 
-
-/*
-    Join
-*/
-
 class Join
 {
 private:
@@ -1701,7 +1670,7 @@ void raiseFileNotFoundError(string filename)
 void raiseBtreeFileNotFoundError(string filename) {
     cout<<"ERROR: B+ tree '"<< filename <<"' not found."<<endl;
     cout<<"Fix 1: Check file name."<<endl;
-    cout<<"Fix 2: File Extension (.btree) is required."<<endl;
+    cout<<"Fix 2: File Extension (.btree) is required.\n"<<endl;
 }
 
 void raiseInvalidParameterError() {
@@ -1751,8 +1720,6 @@ void processProjectQuery()
 
     cin >> fileName >> outputFileName;
 
-    queryProcessingTimerMsg();
-
     bool fileExists = checkFileExistence(fileName);
 
     if(!fileExists)
@@ -1780,6 +1747,8 @@ void processProjectQuery()
         return;
     }
 
+    queryProcessingTimerMsg();
+
     std::clock_t start;
     start = std::clock();
 
@@ -1796,8 +1765,6 @@ void processCrossQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
-
-    queryProcessingTimerMsg();
 
     bool file1Exists = checkFileExistence(fileName1);
     bool file2Exists = checkFileExistence(fileName2);
@@ -1821,6 +1788,8 @@ void processCrossQuery()
 
     Cross cross(fileName1, fileName2, outputFileName);
 
+    queryProcessingTimerMsg();
+
     std::clock_t start;
     start = std::clock();
 
@@ -1839,7 +1808,6 @@ void processSelectQuery()
 
     cin >> fileName >> outputFileName;
 
-    queryProcessingTimerMsg();
 
     bool fileExists = checkFileExistence(fileName);
 
@@ -1852,6 +1820,7 @@ void processSelectQuery()
     Select select(fileName, outputFileName);
 
     cin >> parameter1 >> parameter2;
+
 
     bool isNumber = true;
     int searchValue = 0;
@@ -1885,6 +1854,8 @@ void processSelectQuery()
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
 
+    queryProcessingTimerMsg();
+
     std::clock_t start;
     start = std::clock();
 
@@ -1902,8 +1873,6 @@ void processJoinQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
-
-    queryProcessingTimerMsg();
 
     bool file1Exists = checkFileExistence(fileName1);
     bool file2Exists = checkFileExistence(fileName2);
@@ -1926,6 +1895,9 @@ void processJoinQuery()
     }
 
     Join join(fileName1, fileName2, outputFileName);
+
+    queryProcessingTimerMsg();
+
     std::clock_t start;
     start = std::clock();
 
@@ -1944,7 +1916,7 @@ void processBTreeQuery()
 
     if(!fileExists)
     {
-        raiseFileNotFoundError(fileName);
+        raiseBtreeFileNotFoundError(fileName);
         return;
     }
 
@@ -1955,6 +1927,8 @@ void processBTreeQuery()
         raiseBtreeFileNotFoundError(fileName);
         return;
     }
+
+    queryProcessingTimerMsg();
 
     BPlusTree bPlusTree;
     bPlusTree.setMetaDataFileName(fileName);
