@@ -1698,6 +1698,12 @@ void raiseFileNotFoundError(string filename)
     cout<<endl;
 }
 
+void raiseBtreeFileNotFoundError(string filename) {
+    cout<<"ERROR: B+ tree '"<< filename <<"' not found."<<endl;
+    cout<<"Fix 1: Check file name."<<endl;
+    cout<<"Fix 2: File Extension (.btree) is required."<<endl;
+}
+
 void raiseInvalidParameterError() {
     cout<<"ERROR: Invalid table parameter."<<endl;
 }
@@ -1943,9 +1949,11 @@ void processBTreeQuery()
     }
 
     size_t pos = fileName.find(".btree");
-    if(pos == std::string::npos)
+
+    if((pos == std::string::npos))
     {
         /// Not Valid btree file.
+        raiseBtreeFileNotFoundError(fileName);
         return;
     }
 
@@ -1993,6 +2001,9 @@ void showOperatorManual()
     else if (operatorName == "cross")
     {
         readAndPrintFile("resources/man-cross.txt");
+    }
+    else if (operatorName == "btree") {
+        readAndPrintFile("resources/man-btree.txt");
     }
     else
     {

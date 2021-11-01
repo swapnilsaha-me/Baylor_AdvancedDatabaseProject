@@ -1,0 +1,9 @@
+The btree operator takes one parameter, the name of a b+tree file. The operator generates a human readable output 
+of a btree, including all pointers. All btrees are assumed to have 100 pointers.
+
+*Note: You may want to create a B+ tree using a select command, e.g. select db.csv out.csv id 5
+
+
+Example Query-
+Query >> btree db.csv.id.btree
+__________________________________________
