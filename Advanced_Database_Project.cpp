@@ -1705,7 +1705,7 @@ void raiseBtreeFileNotFoundError(string filename) {
 }
 
 void raiseInvalidParameterError() {
-    cout<<"ERROR: Invalid table parameter."<<endl;
+    cout<<"ERROR: Invalid table parameter."<<endl<<endl;
 }
 
 bool checkParameters(string fileName, vector<string>headers)
@@ -1952,7 +1952,6 @@ void processBTreeQuery()
 
     if((pos == std::string::npos))
     {
-        /// Not Valid btree file.
         raiseBtreeFileNotFoundError(fileName);
         return;
     }
@@ -2062,7 +2061,7 @@ int main()
         else
         {
             cout<<"ERROR: '"<< query <<"' is not defined."<<endl;
-            cout<<"Enter -h to check the query syntax."<<endl;
+            cout<<"Enter -h to check the query syntax."<<endl<<endl;
             cin.sync();
         }
     }
