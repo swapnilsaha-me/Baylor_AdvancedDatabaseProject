@@ -1547,6 +1547,7 @@ private:
 
         Projection projection(fileName, this->outputFile.getFileName());
 
+        map<string, string>newName;
         for(int i = 0; i < this->allHeader.size(); i++)
         {
             bool isCommonHeader = false;
@@ -1573,46 +1574,19 @@ private:
             {
                 parameter = this->allHeader[i];
             }
+            newName[parameter] = this->allHeader[i];
             projection.addHeader(parameter);
         }
 
         projection.readRows();
+
+
         vector<string>headers;
         OutputTable outputTable = projection.getOutputTable();
         for(int i = 0; i < outputTable.getOutputHeader().size(); i++)
         {
-            headers.pb(outputTable.getOutputHeader()[i]);
-        }
-        for(int j = 0; j < headers.size(); j++)
-        {
-            for(int i = 0; i < allHeader.size(); i++)
-            {
-                bool isCommonHeader = false;
-                for(int j = 0; j < this->commonHeader.size(); j++)
-                {
-                    if(allHeader[i] == commonHeader[j])
-                    {
-                        isCommonHeader = true;
-                        break;
-                    }
-                }
-                if(isCommonHeader)
-                {
-                    string fileName = this->file[0].getFileName();
-                    size_t pos = fileName.find(".csv");
-                    fileName = (pos == std::string::npos) ? fileName : fileName.replace(pos, 4, "");
-                    if(this->file[0].getFileName() == this->file[1].getFileName())
-                    {
-                        fileName += (0 + '0' + 1);
-                    }
-                    parameter = fileName + "." + this->allHeader[i];
-                }
-
-                if(headers[j] == parameter)
-                {
-                    headers[j] = this->allHeader[i];
-                }
-            }
+            string column = newName[outputTable.getOutputHeader()[i]];
+            headers.pb(column);
         }
 
         projection.setOutputHeaders(headers);
