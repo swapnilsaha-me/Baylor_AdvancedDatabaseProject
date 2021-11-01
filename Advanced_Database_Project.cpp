@@ -187,7 +187,7 @@ public:
             }
         }
         cout << "-" << endl;
-        cout << "~~ " << rows.size() << " rows returned.\n\n\n" << endl;
+        cout << "~~ " << rows.size() << " rows returned." << endl;
     }
 };
 
@@ -1719,8 +1719,13 @@ void raiseFileNotFoundError(string filename)
     cout<<"Fix 1: Check file name."<<endl;
     cout<<"Fix 2: File Extension (.csv) is required."<<endl;
     cout<<"Fix 3: Make sure your file is in the same folder as Advanced_Database_Project.exe file."<<endl;
+    cout<<"Fix 4: Make sure your file is not open."<<endl;
 
     cout<<endl;
+}
+
+void raiseInvalidParameterError() {
+    cout<<"ERROR: Invalid table parameter."<<endl;
 }
 
 bool checkParameters(string fileName, vector<string>headers)
@@ -1747,6 +1752,17 @@ bool checkParameters(string fileName, vector<string>headers)
     return true;
 }
 
+double getProcessDuration(std::clock_t start) {
+    return ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+}
+
+void showProcessTime(double duration) {
+    cout<<"(In "<<duration<<" sec(s))"<<endl<<endl;
+}
+
+void queryProcessingTimerMsg() {
+    cout<< "Query processing. Please wait. . ."<<endl;
+}
 void processProjectQuery()
 {
     string fileName;
@@ -1754,6 +1770,8 @@ void processProjectQuery()
     string parameter;
 
     cin >> fileName >> outputFileName;
+
+    queryProcessingTimerMsg();
 
     bool fileExists = checkFileExistence(fileName);
 
@@ -1778,20 +1796,28 @@ void processProjectQuery()
 
     if(!checkParameters(fileName, headers))
     {
-        /// Write some error message.
+        raiseInvalidParameterError();
         return;
     }
 
+    std::clock_t start;
+    start = std::clock();
+
     projection.readRows();
     projection.printTable();
+    showProcessTime(getProcessDuration(start));
+
     projection.saveOutput();
 }
+
 
 void processCrossQuery()
 {
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
+
+    queryProcessingTimerMsg();
 
     bool file1Exists = checkFileExistence(fileName1);
     bool file2Exists = checkFileExistence(fileName2);
@@ -1815,8 +1841,14 @@ void processCrossQuery()
 
     Cross cross(fileName1, fileName2, outputFileName);
 
+    std::clock_t start;
+    start = std::clock();
+
     cross.readRows();
     cross.printTable();
+
+    showProcessTime(getProcessDuration(start));
+
     cross.saveOutput();
 }
 
@@ -1826,6 +1858,8 @@ void processSelectQuery()
     string parameter1, parameter2;
 
     cin >> fileName >> outputFileName;
+
+    queryProcessingTimerMsg();
 
     bool fileExists = checkFileExistence(fileName);
 
@@ -1857,7 +1891,7 @@ void processSelectQuery()
     {
         if(parameter1 == parameter2)
         {
-            /// Two parameters can not be equal
+            cout<<"ERROR: 'param1: "<< parameter1 <<"' and param2: " <<parameter2<<"' cannot be equal."<<endl;
             return;
         }
         headers.pb(parameter2);
@@ -1865,14 +1899,21 @@ void processSelectQuery()
 
     if(!checkParameters(fileName, headers))
     {
-        /// Write some error message.
+        raiseInvalidParameterError();
         return;
     }
 
     select.addHeader(parameter1, isNumber, parameter2, searchValue);
 
+    std::clock_t start;
+    start = std::clock();
+
     select.readRows();
     select.printTable();
+
+    showProcessTime(getProcessDuration(start));
+
+
     select.saveOutput();
 }
 
@@ -1881,6 +1922,8 @@ void processJoinQuery()
     string fileName1, fileName2, outputFileName;
 
     cin >> fileName1 >> fileName2 >> outputFileName;
+
+    queryProcessingTimerMsg();
 
     bool file1Exists = checkFileExistence(fileName1);
     bool file2Exists = checkFileExistence(fileName2);
@@ -1903,7 +1946,12 @@ void processJoinQuery()
     }
 
     Join join(fileName1, fileName2, outputFileName);
+    std::clock_t start;
+    start = std::clock();
+
     join.readRows();
+
+    showProcessTime(getProcessDuration(start));
 }
 
 void processBTreeQuery()
